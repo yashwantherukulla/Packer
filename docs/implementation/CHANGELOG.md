@@ -5,6 +5,12 @@ changed / was added, and how it was verified. Newest at the top.
 
 ---
 
+## Phase 1 — Packer
+
+### `feat(pack): scaffold pack package, add torch+tokenizers, add varint util`
+- **Task 1.** Added runtime deps `torch>=2.13.0` (CPU build) and `tokenizers>=0.23.1` via `uv add`. Created the `packer.engine.pack` package (empty `__init__.py`; plugin-registration imports appended per task) and `varint.py` (`_write_uvarint`/`_read_uvarint` — unsigned LEB128, shared by corpus + residual codec).
+- **Verified:** `pytest tests/unit/pack/test_varint.py` → 3 passed; mypy clean; import-linter kept (pack imports only stdlib so far).
+
 ## Phase 0 — Foundations
 
 ### `docs: mark Phase 0 complete`
