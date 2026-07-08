@@ -77,6 +77,12 @@ warn_unused_ignores = true
 module = ["docker", "docker.*", "yara", "transformers", "transformers.*"]
 ignore_missing_imports = true
 
+# Celery ships no py.typed marker / stubs; the worker layer treats it as Any
+# (the engine never imports it — enforced by the framework-agnostic contract).
+[[tool.mypy.overrides]]
+module = ["celery", "celery.*"]
+ignore_missing_imports = true
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]  # make the repo-root `scripts` package importable in tests

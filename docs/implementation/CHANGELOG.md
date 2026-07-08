@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 4 — API
 
+### `feat(workers): add Celery app with Hydra broker config and queue routing`
+- **Task 8.** Added `workers/celery_app.py` — `make_celery(cfg=None) -> Celery` reads broker/result-backend from Hydra (`cfg.broker`), sets `task_default_queue="default"` and `task_routes` (`pack.run`→`gpu`; `detect.run`/`extract.run`/`scan.run`→`default`, spec §4), flips `task_always_eager` from `cfg.broker.eager` (for in-process integration/E2E), and pins `worker_pool="solo"` (Windows-safe local dev; Linux workers override in compose). `app = make_celery()` module singleton. The `Celery(...)` constructor is lazy — no broker connection at import, so the routing test needs no live Redis.
+- Deviations: added a `[[tool.mypy.overrides]] ignore_missing_imports` entry for `celery`/`celery.*` (it ships no py.typed/stubs — same pattern as docker/yara/transformers). The engine never imports celery (still enforced by the framework-agnostic contract).
+- **Verified:** `uv run pytest tests/unit/workers/test_celery_routing.py -v` → **1 passed** (`pack.run`→gpu, others→default, `task_default_queue=="default"`). Full `uv run pytest tests/unit` → **146 passed**. `uv run mypy src` clean (87 files); `uv run lint-imports` → 3 contracts kept, 0 broken; ruff clean.
+
 ### `feat(api): map PackerError.code to HTTP problem+json responses`
 - **Task 7.** Fleshed out the Task-1 `api/errors.py` stub: `code_to_status(code)` (`unsafe_model`→422, `config_error`→400, `load_error`→422, everything else→500) and `register_error_handlers(app)` installing a `PackerError` exception handler that renders an RFC-7807 `application/problem+json` body `{type, title, status, code, detail}`. Covers errors raised synchronously in routes (e.g. an unsafe-pickle rejection on upload); in-job engine errors become failed rows in Task 10.
 - Deviations: the test imports only `UnsafeModelError` (the plan snippet also imported `ConfigError`/`PackerError` but never referenced them — dropped to stay F401-clean; the `config_error` path is asserted via the string literal exactly as the plan does).
