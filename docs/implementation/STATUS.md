@@ -22,7 +22,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started
 
 Plan: [`docs/plans/2026-07-07-phase-6-integration-release.md`](../plans/2026-07-07-phase-6-integration-release.md)
 
-1 toy-repo fixture (benign+malicious) + tiny pack config ✅ · 2 E2E harness (compose stack + api client + wait/pak helpers) ✅ · 3 API-level §6.4 chain (pack→detect→extract→scan, byte-exact) ✅ · 4 Playwright chain through the UI ✅ · 5 sandbox threat model + adversarial containment gate ✅ · 6 no-host-exec invariant + safetensors-only across upload paths ⬜ · 7 service Dockerfiles ⬜ · 8 .dockerignore ⬜ · 9 compose stack ⬜ · 10 perf benches + baselines ⬜ · 11 clean-checkout smoke ⬜ · 12 nightly E2E CI ⬜ · 13 operator/release docs ⬜
+1 toy-repo fixture (benign+malicious) + tiny pack config ✅ · 2 E2E harness (compose stack + api client + wait/pak helpers) ✅ · 3 API-level §6.4 chain (pack→detect→extract→scan, byte-exact) ✅ · 4 Playwright chain through the UI ✅ · 5 sandbox threat model + adversarial containment gate ✅ · 6 no-host-exec invariant + safetensors-only across upload paths ✅ · 7 service Dockerfiles ⬜ · 8 .dockerignore ⬜ · 9 compose stack ⬜ · 10 perf benches + baselines ⬜ · 11 clean-checkout smoke ⬜ · 12 nightly E2E CI ⬜ · 13 operator/release docs ⬜
 
 ## Phase 5 — Web UI tasks
 
