@@ -7,6 +7,12 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 1 — Packer
 
+### `feat(pack): add Packer orchestrator with byte-exact verify gate and honest metrics`
+- **Task 10.** Added `packer.py`: `Packer.pack(root, cfg, ports, progress) -> str` — serialize → tokenize → (reject if tokens > `context_len`) → build → train → capture residuals → **verify byte-exact round-trip in-process (fail-fast `PackError`)** → build manifest with honest metrics (`original`/`gzip`/`model`/`artifact` bytes, residual ratio, `lossless`) → persist (`ports.store.put_pak` or `PakWriter` under `cfg.out_dir`). Exported from `pack/__init__.py`.
+- Deviations from plan snippet: typed `cfg` as `DictConfig` (eliminates ~15 `# type: ignore[attr-defined]` — OmegaConf attribute access is already `Any`) and cast the `Registry[object]` arch/decode lookups; widened `InferenceModel`'s `tokenizer` param to the `Tokenizer` port (it only calls `.decode`), so the registry-created tokenizer type-checks.
+- **Test fix:** `test_pack_rejects_oversized_corpus` used `b"a"*5000`, which byte-BPE merges to <64 tokens (never trips the gate); replaced with ~6400 high-entropy (sha256-chained) bytes so the oversize gate is genuinely exercised.
+- **Verified:** `pytest tests/unit/pack/test_packer.py` → 4 passed (pack↔unpack byte-exact + final `pct==1.0`; honest metrics with `artifact_bytes > gzip_bytes`; verify-gate raises on dropped residuals; oversize raises). Full `tests/unit/pack` → 35 passed; mypy clean; ruff clean; import-linter kept.
+
 ### `feat(pack): add standalone unpack()/unpack_bundle() reused by Phase 3`
 - **Task 9.** Added `unpacker.py`: `unpack(pak_path)` and `unpack_bundle(bundle)` — read a `.pak`, rebuild the `TinyDecoder` from tensors + `ModelInfo`, wrap in `InferenceModel`, decode the residual blob via the registry-selected codec/decode strategy, and split frames → `{posix_relpath: bytes}`. Exported from `pack/__init__.py`; **reused verbatim by Phase 3's exact extractor**.
 - Deviations from plan snippet: guarded the `int | None` manifest model fields with a single narrowing check (mypy-strict) before rebuilding; `cast(DecodeStrategy, DECODE_REGISTRY.create(...))` at the `Registry[object]` boundary; tensor param typed `dict[str, NDArray[Any]]`.

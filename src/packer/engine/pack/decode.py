@@ -6,14 +6,18 @@ import torch
 from torch import nn
 
 from packer.engine.artifacts.codec import ResidualCodec, Residuals
+from packer.engine.common.ports import Tokenizer
 from packer.engine.common.registries import DECODE_REGISTRY
-from packer.engine.pack.tokenizer import ByteBPETokenizer
 
 
 class InferenceModel:
-    """Thin forward-only wrapper (model + tokenizer) used by capture and decode."""
+    """Thin forward-only wrapper (model + tokenizer) used by capture and decode.
 
-    def __init__(self, model: nn.Module, tokenizer: ByteBPETokenizer, bos_token_id: int) -> None:
+    ``tokenizer`` is typed as the ``Tokenizer`` port (only ``decode`` is used), so
+    both a concrete ``ByteBPETokenizer`` and a registry-created tokenizer fit.
+    """
+
+    def __init__(self, model: nn.Module, tokenizer: Tokenizer, bos_token_id: int) -> None:
         self.model = model.eval()
         self.tokenizer = tokenizer
         self.bos_token_id = bos_token_id
