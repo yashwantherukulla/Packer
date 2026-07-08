@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 4 — API
 
+### `feat(api): map PackerError.code to HTTP problem+json responses`
+- **Task 7.** Fleshed out the Task-1 `api/errors.py` stub: `code_to_status(code)` (`unsafe_model`→422, `config_error`→400, `load_error`→422, everything else→500) and `register_error_handlers(app)` installing a `PackerError` exception handler that renders an RFC-7807 `application/problem+json` body `{type, title, status, code, detail}`. Covers errors raised synchronously in routes (e.g. an unsafe-pickle rejection on upload); in-job engine errors become failed rows in Task 10.
+- Deviations: the test imports only `UnsafeModelError` (the plan snippet also imported `ConfigError`/`PackerError` but never referenced them — dropped to stay F401-clean; the `config_error` path is asserted via the string literal exactly as the plan does).
+- **Verified:** `uv run pytest tests/unit/api/test_errors.py -v` → **2 passed** (status mapping; `/boom` raising `UnsafeModelError` → 422 problem+json with `code=="unsafe_model"`, detail contains "pickle"). `test_app.py` still green (handler registration is a no-op on the boot path). `uv run mypy src` clean (86 files); ruff clean.
+
 ### `feat(api): add JobService with status transitions and input-hash dedup`
 - **Task 6.** Added `api/jobs/service.py` — `JobService(repo, *, dedup=False)` with `create(type, input_ref=None, input_hash=None) -> JobRecord`, `get(id)`, `list(status=None, type=None)`. `correlation_id == job id` (SYSTEM-DESIGN §7); rows map to the `JobRecord` wire schema via `model_validate(..., from_attributes=True)`. When `dedup` is on and a **succeeded** job with the same `input_hash` exists, it is returned instead of creating a new one (spec §4). Pure orchestration — no engine logic.
 - Deviations: none (plan snippet used verbatim modulo ruff import grouping).
