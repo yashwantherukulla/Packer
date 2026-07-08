@@ -1,0 +1,27 @@
+repos:
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.5.0
+    hooks:
+      - id: ruff
+        args: [--fix]
+      - id: ruff-format
+  - repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.10.0
+    hooks:
+      - id: mypy
+        additional_dependencies: ["pydantic>=2.7"]
+        files: ^src/
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.6.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-yaml
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+      - id: check-merge-conflict
+      - id: detect-private-key
+        # The Phase 3 plan documents the secrets scanner — a fixture key header
+        # (truncated, non-real) plus the scanner's own detection regex. Phase 3
+        # will extend this exclude to the scanner's source/test fixtures.
+        exclude: ^docs/plans/2026-07-07-phase-3-extractor-sandbox\.md$

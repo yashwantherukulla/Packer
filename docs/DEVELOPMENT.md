@@ -217,6 +217,9 @@ repos:
         args: [--maxkb=1024]   # keep weights/artifacts out of git
       - id: check-merge-conflict
       - id: detect-private-key
+        # Exempt docs/tests that legitimately embed key headers (the Phase 3
+        # secrets-scanner spec + its fixtures) — never real keys.
+        exclude: ^docs/plans/2026-07-07-phase-3-extractor-sandbox\.md$
 ```
 
 > **Requirement satisfied:** ruff lint **and** format run on commit via the two `ruff-pre-commit` hooks; this is the first thing enabled in Phase 0.
