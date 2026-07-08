@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 5 — Web UI
 
+### `feat(ui): add verdict/risk color scale + byte/pct formatters`
+- **Task 3.** Added `src/lib/verdict.ts` — the single accessible tone scale: `verdictTone` (detect `MEMORIZED-CODE-LIKELY|INCONCLUSIVE|UNLIKELY` → `danger|warn|ok`), `riskTone` (scan `malicious|suspicious|benign`), `severityTone` (`critical|high|medium|low`), and `toneClasses: Record<Tone, string>` (light + `dark:` Tailwind classes per tone). Added `src/lib/format.ts` — `formatBytes` (unit-scaling), `formatPct` (fraction → rounded %), `formatRatio` (`×`-suffixed). Both are framework-agnostic, no dependencies.
+- Deviations: none — implemented verbatim from the plan.
+- **Verified:** from `frontend/` — `npm run test -- --run src/lib/verdict.test.ts src/lib/format.test.ts` → 2 files / 5 tests passed. `npm run typecheck` clean; `npm run lint` → 0 errors.
+
 ### `feat(ui): generate typed OpenAPI client + CI drift check`
 - **Task 2.** Committed `frontend/openapi.json` — a snapshot of the Phase-4 OpenAPI document generated via `uv run python -c "...create_app().openapi()..."` (route introspection only; no DB/Redis) and normalized to LF. Generated `src/api/schema.d.ts` with `openapi-typescript` (never hand-edited). Added `src/api/client.ts` (`createClient<paths>({ baseUrl: "/api" })`), `src/api/types.ts` (re-exports the generated wire types), and `.github/workflows/frontend.yml` (`npm ci` → `check:api` → `lint` → `typecheck` → `test` → `build`; Node 20 in CI). Added `gen:openapi`/`gen:api`/`check:api` scripts. Added `frontend/.gitattributes` (`* text=auto eol=lf`) so `openapi.json`/`schema.d.ts` are byte-identical across Windows/Linux and the `check:api` drift gate is stable.
 - Deviations + why (real generated types differ from the plan's placeholder names):
