@@ -37,6 +37,7 @@ dev = [
   "pytest-asyncio>=1.4.0",
   "httpx>=0.28.1",
   "testcontainers>=4.14.2",
+  "websockets>=16.0",
 ]
 
 [build-system]
