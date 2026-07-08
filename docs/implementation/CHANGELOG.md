@@ -7,6 +7,14 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 6 — Integration & Release
 
+### `test(e2e): clean-checkout compose smoke (/docs, /openapi.json, frontend)`
+- **Task 10.** Added `tests/e2e/test_clean_checkout.py` — an `e2e`+`slow`-marked test independent of the session `compose_stack` fixture: from a clean state it runs `docker compose down -v` (best-effort) → `up -d --build` → waits on `/docs`, asserts `/openapi.json` 200 and the frontend root 200 → tears down with `down -v` in a `finally`. This is the phase-6 acceptance criterion "brings the full stack online from a clean checkout". Imports `API_BASE`/`COMPOSE_FILE`/`FRONTEND_BASE`/`REPO_ROOT`/`_wait_http` from the Task-2 conftest.
+- Deviations + why:
+  - **Registered the `slow` pytest marker** in `pyproject.toml` `[tool.pytest.ini_options].markers`. The plan's `pytestmark = [e2e, slow]` trips `--strict-markers` (only `unit`/`integration`/`e2e`/`gpu` were registered) → collection ERROR. Registered `slow` (minimal change) to keep the plan's marker.
+  - **Added `_docker_available()` to the skipif.** The plan guarded only on `COMPOSE_FILE.exists()`, which now (post-Task-9) resolves True → the test would ERROR on `up --build` with the daemon down. Widened the guard to `COMPOSE_FILE.exists() and _docker_available()` so it skips cleanly here and runs in the daemon-equipped nightly job.
+  - **Added `-> None` return annotation** (mypy-strict hygiene; the plan snippet omitted it).
+- **Verified:** `uv run pytest tests/e2e/test_clean_checkout.py -m e2e -v` → **1 skipped** (clean skip, no daemon). `uv run ruff check --fix` + `ruff format` → clean. **The full `compose up --build` clean-checkout run is DEFERRED to the Task-12 nightly workflow — Docker daemon down on this host.**
+
 ### `build: full-stack compose.yml + dev overlay + nginx proxy`
 - **Task 9.** Added `docker/compose.yml` — the full stack: `postgres:16` + `redis:7` (both healthchecked), a build-only `sandbox-image` service that produces `packer-sandbox:latest` (Phase-3 `docker/sandbox/` context) gated via `service_completed_successfully`, `api` (Task-7 image, migrate-on-startup, `8000:8000`, artifacts volume + E2E host bind), `worker-default` (Celery `default` queue, `/var/run/docker.sock` mounted for docker-out-of-docker sandbox spawning), `worker-gpu` (`profiles: [gpu]`, nvidia device reservation, `gpu` queue), and `frontend` (nginx-served SPA, `5173:80`). Added `docker/nginx.conf` (SPA fallback + `/api/`→`api:8000/` prefix-strip proxy + `/ws/` upgrade proxy — mirrors the Phase-5 vite dev proxy for parity) and `docker/compose.dev.yml` (thin overlay: source-mount + `--reload` api, source-mount worker, vite dev-server frontend — mounts/commands only, no config forks per ADR-014).
 - Deviations + why:
