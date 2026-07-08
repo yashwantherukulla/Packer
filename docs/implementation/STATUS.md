@@ -1,7 +1,7 @@
 # Status
 
-**Current branch:** `phase-0-foundations`
-**Current phase:** Phase 0 — Foundations
+**Current branch:** `main` (Phase 0 merged)
+**Current phase:** Phase 0 complete — next is Phase 1 (Packer)
 **Last updated:** 2026-07-08
 
 Legend: ✅ done · 🚧 in progress · ⬜ not started
@@ -10,7 +10,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started
 
 | Phase | Name | State |
 |-------|------|-------|
-| 0 | Foundations (toolchain + shared kernel + `.pak` format) | 🚧 |
+| 0 | Foundations (toolchain + shared kernel + `.pak` format) | ✅ |
 | 1 | Packer (tiny decoder, trainer, lossless pack) | ⬜ |
 | 2 | Detector (inference-free weight signals) | ⬜ |
 | 3 | Extractor + Sandbox | ⬜ |
@@ -39,11 +39,11 @@ Plan: [`docs/plans/2026-07-07-phase-0-foundations.md`](../plans/2026-07-07-phase
 | 12 | `.pak` artifact format (manifest, codec, reader/writer) | ✅ |
 
 ### Phase 0 Definition of Done
-- ⬜ `uv sync` provisions Python 3.10.x; `uv run pre-commit run --all-files` passes.
-- ⬜ `uv run pytest tests/unit` green; `uv run mypy src` clean; `uv run lint-imports` all contracts kept.
-- ⬜ `import packer.engine` (+ `.common`, `.models`, `.artifacts`) succeed with no side effects.
-- ⬜ Registry round-trip works; unknown name raises `ConfigError`.
-- ⬜ `compose_config()` composes root config; overrides apply.
-- ⬜ `HFModelLoader.load` loads a safetensors fixture and refuses `.bin` by default.
-- ⬜ `PakBundle` round-trips through `PakWriter`/`PakReader`.
-- ⬜ CI `quality` job green.
+- ✅ `uv sync` provisions Python 3.10.19; `uv run pre-commit run --all-files` passes (all 10 hooks).
+- ✅ `uv run pytest tests/unit` → 27 passed; `uv run mypy src` clean (19 files); `uv run lint-imports` → 2 contracts kept, 0 broken.
+- ✅ `import packer.engine` (+ `.common`, `.models`, `.artifacts`) succeed with no side effects.
+- ✅ Registry round-trip works; unknown name raises `ConfigError` (`test_registry.py`).
+- ✅ `compose_config()` composes root config; overrides apply (`test_config.py`).
+- ✅ `HFModelLoader.load` loads a safetensors fixture and refuses `.bin` by default (`test_loader.py`).
+- ✅ `PakBundle` round-trips through `PakWriter`/`PakReader` (`test_pak.py`).
+- ⏸ CI `quality` job — workflow is valid but not yet exercised (no git remote configured). Runs on first push.

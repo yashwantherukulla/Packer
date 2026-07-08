@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 0 — Foundations
 
+### `docs: mark Phase 0 complete`
+- **Phase 0 done.** All 12 plan tasks landed across 14 commits on `phase-0-foundations`. Definition of Done fully met: 27 unit tests, mypy-strict clean (19 files), 2 import-linter contracts kept, all engine subpackages import with no side effects. (CI job is valid but unexercised — no remote yet.)
+- Branch merged into `main` with `--no-ff`.
+- **Next:** Phase 1 (Packer) — from-scratch tiny decoder, byte-BPE tokenizer, overfit trainer, residual capture, lossless `Packer.pack`.
+
 > **Task order note:** remaining Phase-0 tasks are executed **11 → 12 → 10 → 9** (models, artifacts, config/assembler, import-linter). The import-linter layering contract references `packer.engine.models`/`artifacts`, so it must land *after* those packages exist; models & artifacts are independent of config/assembler.
 
 ### `chore: enforce Dependency Rule with import-linter contracts`
