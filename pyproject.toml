@@ -56,9 +56,11 @@ strict = true
 warn_unused_ignores = true
 
 # The docker SDK ships incomplete type stubs; yara-python is an optional native
-# dependency the scanner lazy-imports and degrades without. Both treated as Any.
+# dependency the scanner lazy-imports and degrades without; transformers is an
+# optional lib the blind extractor lazy-imports for foreign models (degrades to a
+# ReconstructionError when absent). All treated as Any.
 [[tool.mypy.overrides]]
-module = ["docker", "docker.*", "yara"]
+module = ["docker", "docker.*", "yara", "transformers", "transformers.*"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
@@ -107,6 +109,7 @@ name = "clean layering"          # high -> low; higher layers may import lower o
 type = "layers"
 layers = [
   "packer.engine.sandbox",
+  "packer.engine.extract",
   "packer.engine.pack | packer.engine.detect",
   "packer.engine.models | packer.engine.artifacts | packer.engine.report",
   "packer.engine.common",

@@ -31,7 +31,10 @@ repos:
     rev: v5.0.0
     hooks:
       - id: end-of-file-fixer
+        # .pak fixtures are byte-exact artifacts (round-trip is asserted); never rewrite them.
+        exclude: ^tests/fixtures/.*\.pak/
       - id: trailing-whitespace
+        exclude: ^tests/fixtures/.*\.pak/
       - id: check-yaml
       - id: check-added-large-files
         args: [--maxkb=1024]

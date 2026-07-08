@@ -42,7 +42,7 @@ Plan: [`docs/plans/2026-07-07-phase-0-foundations.md`](../plans/2026-07-07-phase
 
 Plan: [`docs/plans/2026-07-07-phase-3-extractor-sandbox.md`](../plans/2026-07-07-phase-3-extractor-sandbox.md)
 
-1 Docker image ✅ (build=integration) · 2 sandbox value objects + config ✅ · 3 DockerSandboxRunner ✅ · 4 containment tests ✅ (skip: no daemon) · 5 DynamicAnalyzer ✅ · 6 AST scanner ✅ · 7 bandit+semgrep scanners ✅ (semgrep degrades on Win) · 8 yara+secrets scanners ✅ · 9 StaticAnalyzer (registry-driven) ✅ · 10 Extraction VOs + InferenceModel + ExactExtractor ⬜ · 11 BlindExtractor ⬜ · 12 ExtractionService ⬜ · 13 RiskScorer + calibration ⬜ · 14 ScanReportBuilder + ScanPipeline (E2E) ⬜
+1 Docker image ✅ (build=integration) · 2 sandbox value objects + config ✅ · 3 DockerSandboxRunner ✅ · 4 containment tests ✅ (skip: no daemon) · 5 DynamicAnalyzer ✅ · 6 AST scanner ✅ · 7 bandit+semgrep scanners ✅ (semgrep degrades on Win) · 8 yara+secrets scanners ✅ · 9 StaticAnalyzer (registry-driven) ✅ · 10 Extraction VOs + InferenceModel + ExactExtractor ✅ · 11 BlindExtractor ⬜ · 12 ExtractionService ⬜ · 13 RiskScorer + calibration ⬜ · 14 ScanReportBuilder + ScanPipeline (E2E) ⬜
 
 ### Phase 0 Definition of Done
 - ✅ `uv sync` provisions Python 3.10.19; `uv run pre-commit run --all-files` passes (all 10 hooks).
