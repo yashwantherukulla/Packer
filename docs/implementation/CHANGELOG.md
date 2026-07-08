@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 3 — Extractor + Sandbox
 
+### `feat(extract): BlindExtractor best-effort decode, clearly labeled non-exact`
+- **Task 11.** Added `extract/blind.py`: `BlindExtractor` `@EXTRACTOR_REGISTRY.register("blind")` — no manifest, so it greedy-decodes from BOS via the forward-only `InferenceModel`, heuristically splits on `# FILE:` / `--- file:` boundary markers, and returns an `Extraction` with **low/medium confidence** (0.05–0.35) and explanatory `notes`; never claims byte-exactness and degrades to an empty/partial result (with a note) instead of crashing. `extract/__init__.py` now imports both `exact` and `blind`.
+- Deviations: none (plan snippet used verbatim, ruff line-length reflow only). Since `transformers` is absent on this host, `from_model_ref` raises `ReconstructionError` and the extractor degrades to `files={}, confidence=0.05` — the intended graceful path (CI with transformers exercises the real decode).
+- **Verified:** `uv run pytest tests/unit/extract/test_blind.py` → 2 passed (registered under "blind"; manifest-less model does not crash, labeled blind, confidence < 1.0, notes present); `uv run mypy src` clean (65 files); `uv run lint-imports` → 3 contracts kept; ruff clean.
+
 ### `feat(extract): Extraction/InferenceModel + ExactExtractor delegating to Phase-1 unpack`
 - **Task 10.** New `engine/extract` subsystem: `model.py` (`Extraction`, `ExtractTarget` frozen VOs), `inference.py` (`InferenceModel` — forward-only wrapper: `from_pak` rebuilds the Phase-1 `TinyDecoder` + loads tensors; `from_model_ref` lazy-loads a foreign model via `transformers`; `next_logits` under `torch.no_grad()`), `exact.py` (`ExactExtractor` `@EXTRACTOR_REGISTRY.register("exact")`, byte-exact, confidence 1.0). Extended the import-linter "clean layering" contract to place `extract` above `pack`/`detect` (the `extract → pack` reuse edge). Committed a tiny `tests/fixtures/tiny_repo.pak` (epochs=1, CPU, 78 KB) that round-trips to `{main.py, util/helpers.py}`.
 - Deviations from the plan snippet (Phase-1 API differs from the plan's assumptions, all faithful to the DoD "delegate to the Phase-1 Unpacker; no second decode path"):
