@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 1 — Packer
 
+### `feat(pack): add OverfitTrainer with determinism + progress reporting`
+- **Task 6.** Added `trainer.py`: `OverfitTrainer.train(model, tokens, cfg, progress)` — AdamW teacher-forced overfit loop (no dropout), emits `step="train"` progress with epoch/loss/token-accuracy, no-ops on empty tokens. Module helpers `apply_determinism(seed, deterministic)` (seeds random/numpy/torch + deterministic flags) and `resolve_device(name)` (auto→cuda|cpu), reused by `Packer`. Added shared `tests/unit/pack/conftest.py` (`cfg_factory`).
+- Deviations: `# type: ignore[no-untyped-call]` on `loss.backward()` (untyped in torch stubs); ruff RUF005 (`[bos, *tokens[:-1]]`) and B905 (`zip(..., strict=True)`) applied.
+- **Verified:** `pytest tests/unit/pack/test_trainer.py` → 4 passed (loss decreases + progress emitted, same-seed determinism, empty-corpus no-op); mypy clean; ruff clean.
+
 ### `feat(pack): add from-scratch TinyDecoder + tiny-decoder architecture builder`
 - **Task 5.** Added `arch.py`: `TinyDecoder(nn.Module)` — from-scratch causal decoder (token+positional embeddings, pre-norm blocks with `scaled_dot_product_attention(is_causal=True)`, GELU MLP, LM head) — and `TinyDecoderArch` `@ARCH_REGISTRY.register("tiny-decoder")` building it from config. Registered via `pack/__init__.py`.
 - Added a `ModelArchitecture` Protocol **in `pack`** (not `common`): it references `torch.nn.Module`, so keeping it out of the kernel preserves the framework-light Dependency Rule (documented deviation from SYSTEM-DESIGN §3.2's placement).
