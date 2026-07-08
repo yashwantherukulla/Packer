@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 5 — Web UI
 
+### `feat(ui): add useJobProgress with WS live stream + Query polling fallback`
+- **Task 6.** Added `src/hooks/useJobProgress.ts` — `useJobProgress(jobId) → { event: ProgressView | null, connected, status? }`. Subscribes to `/ws/jobs/{id}` via `createJobProgressSocket` (Task 4); while the socket is open the latest live `ProgressView` wins, and on socket loss (`connected=false`) it derives a `ProgressView` from the polled `useJob` row (`progress_step`/`progress_pct`) so the UI keeps advancing until reconnect (Query is authoritative). `status` comes from the Query job row.
+- Deviations: none — implemented verbatim from the plan.
+- **Verified:** from `frontend/` — `npm run test -- --run src/hooks/useJobProgress.test.tsx` → 1 file / 1 test passed (live WS event wins; on close it falls back to the polled `{step:"train", pct:0.2, detail:null}` row). `npm run typecheck` clean; `npm run lint` → 0 errors.
+
 ### `feat(ui): add TanStack Query provider, job/report/artifact + submit hooks`
 - **Task 5.** Added `src/hooks/queryClient.ts` (shared `QueryClient`, `staleTime: 1000`, no refetch-on-focus) and wrapped the router in `main.tsx` with `QueryClientProvider`. Added `src/hooks/useJob.ts` — `useJob(id)` (GET `/jobs/{job_id}`, auto-polls 1.5s until terminal `succeeded|failed|cancelled` — the polling source of truth), `useJobs(filters)` (GET `/jobs`), `useReport(id)`/`useArtifact(id)` (GET `/reports/{report_id}` · `/artifacts/{artifact_id}`, disabled on `null`). Added `src/hooks/useSubmit.ts` — `useSubmitPack` (multipart FormData → POST `/pack`), `useSubmitDetect`/`useSubmitScan` (`{model_ref}` → POST `/detect` · `/scan`); each returns the created `Job` and invalidates the `["jobs"]` list.
 - Deviations + why:
