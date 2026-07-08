@@ -7,6 +7,12 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 5 — Web UI
 
+### `feat(ui): add Pack + Jobs + JobDetail pages and route wiring`
+- **Task 12.** Added `src/pages/Pack.tsx` (drop `.zip` → epochs → `useSubmitPack` → live `JobProgress` → `PackResultCard` on success), `src/pages/Jobs.tsx` (status filter → `useJobs` → rows linking to detail), `src/pages/JobDetail.tsx` (routed detail: `useJob` + `useJobProgress`, then `PackResultCard` for pack jobs / `ReportView` for detect+scan). Wired `/pack`, `/jobs`, `/jobs/:id` into `src/router.tsx`. Pages are composition only — all fetching lives in hooks.
+- Deviations + why:
+  - **Artifact metrics field is `metrics_json`.** The generated `ArtifactResponse` exposes `metrics_json` (opaque dict), not `metrics` as the plan assumed, so Pack/JobDetail read `artifact.data.metrics_json as unknown as ArtifactMetrics`.
+- **Verified:** from `frontend/` — `npm run test -- --run src/pages/Pack.test.tsx src/pages/Jobs.test.tsx` → 2 files / 2 tests passed (uploading a `.zip` calls `mutate` once and streams the `train` step; Jobs lists the row and links to `/jobs/abcdef12`). `npm run typecheck` clean; `npm run lint` → 0 errors.
+
 ### `feat(ui): add unified ReportView (kind-branch) + honest-metrics PackResultCard`
 - **Task 11.** Added `src/components/ReportView.tsx` — the **single** report renderer: shared `VerdictBadge` + a shared `limitations` list, branching on `report.kind` **only** (`detect` → `SignalBreakdown`; `scan` → `FindingsTable` + `BehaviorPanel`). Added `src/components/PackResultCard.tsx` — `<PackResultCard metrics downloadHref />` with honest `Original`/`gzip`/`Artifact (.pak)` sizes, the "not a compressor" ratio-vs-original note, and a `.pak` download link. Updated `src/hooks/useJob.ts` `useReport` to map the wire `ReportResponse` through `toReportBody` and return the flat `ReportBody`.
 - Deviations + why:
