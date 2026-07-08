@@ -53,7 +53,7 @@ src = ["src", "tests"]
 # Test fixtures are data (e.g. planted-malware samples, .pak artifacts), not code:
 # never lint or reformat them. `--force-exclude` on the hooks honors this even when
 # pre-commit passes the paths explicitly.
-extend-exclude = ["tests/fixtures"]
+extend-exclude = ["tests/fixtures", "tests/e2e/fixtures"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "SIM", "C4", "PTH", "RUF"]

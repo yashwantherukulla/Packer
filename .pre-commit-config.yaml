@@ -31,10 +31,12 @@ repos:
     rev: v5.0.0
     hooks:
       - id: end-of-file-fixer
-        # .pak fixtures are byte-exact artifacts (round-trip is asserted); never rewrite them.
-        exclude: ^tests/fixtures/.*\.pak/
+        # .pak fixtures are byte-exact artifacts (round-trip is asserted); never rewrite
+        # them. The E2E toy_repo (incl. the planted-malicious exfil.py) is data too: the
+        # pack->extract byte-exact oracle reads it as-authored, so keep it pristine.
+        exclude: ^(tests/fixtures/.*\.pak/|tests/e2e/fixtures/)
       - id: trailing-whitespace
-        exclude: ^tests/fixtures/.*\.pak/
+        exclude: ^(tests/fixtures/.*\.pak/|tests/e2e/fixtures/)
       - id: check-yaml
       - id: check-added-large-files
         args: [--maxkb=1024]
@@ -45,6 +47,8 @@ repos:
         exclude: |
           (?x)^(
             docs/plans/2026-07-07-phase-3-extractor-sandbox\.md
+            | docs/plans/2026-07-07-phase-6-integration-release\.md
             | src/packer/engine/sandbox/static/secrets\.py
             | tests/unit/sandbox/static/test_secrets\.py
+            | tests/e2e/fixtures/toy_repo/exfil\.py
           )$

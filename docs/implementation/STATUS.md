@@ -1,7 +1,7 @@
 # Status
 
-**Current branch:** `phase-5-web-ui`
-**Current phase:** Phase 5 — Web UI
+**Current branch:** `phase-6-integration-release`
+**Current phase:** Phase 6 — Integration & Release
 **Last updated:** 2026-07-09
 
 Legend: ✅ done · 🚧 in progress · ⬜ not started
@@ -16,7 +16,13 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started
 | 3 | Extractor + Sandbox | ✅ |
 | 4 | API (FastAPI + Celery + Postgres) | ✅ |
 | 5 | Web UI (React SPA) | ✅ |
-| 6 | Integration & Release | ⬜ |
+| 6 | Integration & Release | 🚧 |
+
+## Phase 6 — Integration & Release tasks
+
+Plan: [`docs/plans/2026-07-07-phase-6-integration-release.md`](../plans/2026-07-07-phase-6-integration-release.md)
+
+1 toy-repo fixture (benign+malicious) + tiny pack config ✅ · 2 E2E harness (compose stack + api client + wait/pak helpers) ⬜ · 3 API-level §6.4 chain (pack→detect→extract→scan, byte-exact) ⬜ · 4 Playwright chain through the UI ⬜ · 5 sandbox threat model + adversarial containment gate ⬜ · 6 no-host-exec invariant + safetensors-only across upload paths ⬜ · 7 service Dockerfiles ⬜ · 8 .dockerignore ⬜ · 9 compose stack ⬜ · 10 perf benches + baselines ⬜ · 11 clean-checkout smoke ⬜ · 12 nightly E2E CI ⬜ · 13 operator/release docs ⬜
 
 ## Phase 5 — Web UI tasks
 

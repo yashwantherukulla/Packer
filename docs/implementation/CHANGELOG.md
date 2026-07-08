@@ -5,6 +5,17 @@ changed / was added, and how it was verified. Newest at the top.
 
 ---
 
+## Phase 6 — Integration & Release
+
+### `test(e2e): add toy-repo fixture (benign+malicious) and tiny pack config`
+- **Task 1.** Added the backend E2E fixture `tests/e2e/fixtures/toy_repo/` with exactly two planted units: `hello.py` (benign — static/dynamic passes find nothing high-severity) and `exfil.py` (deliberately malicious: socket beacon to a non-routable address, `subprocess.Popen`, `base64`+`exec`, and a hardcoded AWS-key-like secret — INERT, sandbox-only). Added `expected.py` (single source of truth: `DETECT_VERDICT="MEMORIZED-CODE-LIKELY"`, `FILE_LABELS`, `PACK_OVERRIDES={"engine/pack":"e2e_tiny"}`), the deterministic zip builder `build_toy_repo.py` (`build_toy_repo`/`read_repo`, sorted paths + fixed mtime → reproducible pack input + byte-exact oracle), and `conf/engine/pack/e2e_tiny.yaml` (2-layer/64-dim/40-epoch CPU decoder so `pack` finishes in seconds; losslessness is convergence-invariant per ADR-006). Added the fixture shape gate `tests/e2e/test_toy_repo_fixture.py` (no stack needed).
+- Fixture-lint excludes (so hooks never lint/rewrite planted data):
+  - `pyproject.toml` `[tool.ruff]` `extend-exclude` → added `"tests/e2e/fixtures"` (alongside `"tests/fixtures"`).
+  - `.pre-commit-config.yaml`: added `^tests/e2e/fixtures/` to `end-of-file-fixer` and `trailing-whitespace` excludes (keep the planted files byte-pristine for the byte-exact oracle); added `tests/e2e/fixtures/toy_repo/exfil.py` (and the phase-6 plan) to the `detect-private-key` exclude for the AWS-key-like `API_TOKEN` pattern.
+- Deviations + why:
+  - **No `tests/e2e/__init__.py` / `tests/e2e/fixtures/__init__.py`.** The repo's test tree is namespace-package based (no `__init__.py` under `tests/`, `tests/unit/`, or `tests/integration/`); cross-imports like `from tests.unit.fakes import …` already work via `pythonpath=["."]` + `--import-mode=importlib`. Following the plan's literal `__init__.py` would split module identity under importlib (dir has `__init__.py`, parent doesn't). Kept the established layout; `from tests.e2e.fixtures.build_toy_repo import …` resolves cleanly (verified by the passing gate).
+- **Verified:** `uv run pytest tests/e2e/test_toy_repo_fixture.py -v` → **3 passed** (one-benign-one-malicious invariant, files present, zip byte-deterministic). `uv run ruff check --fix tests/e2e conf` → All checks passed (fixtures correctly excluded); `uv run ruff format tests/e2e` → unchanged; `uv run mypy src` → clean (104 files); `uv run lint-imports` → 3 contracts kept. Full runnable suite `uv run pytest -m "not integration and not e2e"` → **165 passed, 10 deselected**.
+
 ## Phase 5 — Web UI
 
 ### `test(ui): add Playwright E2E for pack/detect/scan happy paths`
