@@ -135,3 +135,9 @@ layers = [
   "packer.engine.models | packer.engine.artifacts | packer.engine.report",
   "packer.engine.common",
 ]
+# The ONE sanctioned intra-engine edge (mirrors the docker adapter carve-out on
+# the forbidden contract): the filesystem ArtifactStore adapter lives under
+# common/stores/ (the SYSTEM-DESIGN §8 storage-backend playbook) and reuses the
+# canonical .pak on-disk layout via PakWriter/PakReader rather than duplicating
+# it. Stdlib + safetensors only, so the engine stays framework-agnostic.
+ignore_imports = ["packer.engine.common.stores.filesystem -> packer.engine.artifacts.pak"]
