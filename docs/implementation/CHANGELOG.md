@@ -7,6 +7,10 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 2 — Detector
 
+### `feat(report): add versioned Report model + JSON/text renderers`
+- **Task 7.** Added the shared reporting kernel `engine/report/model.py` (reused by Phase 3): `Report{kind: detect|scan, schema_version, verdict, sections, evidence, limitations}` (frozen pydantic) with `to_json()`/`to_text()`; unknown `schema_version` raises `ConfigError`. Plus `VerdictBlock`, `ReportSection`, and structural `VerdictLike`/`SignalResultLike` Protocols so builders never import `detect` (keeps `report` importing only `common`).
+- **Verified:** `pytest tests/unit/report/test_model.py` → 2 passed (JSON round-trip + text render, version guard); mypy clean; ruff clean.
+
 ### `feat(detect): add metadata signal + signal self-registration discovery`
 - **Task 6.** Added `MetadataSignal` `@SIGNAL_REGISTRY.register("metadata")` — config/param heuristics (tiny param proxy, small vocab, `.pak`-shaped manifest markers → strong evidence). Filled `signals/__init__.py` so importing the package self-registers all five signals (open/closed discovery).
 - Deviation: `contextlib.suppress(KeyError)` instead of try/except/pass (ruff SIM105).
