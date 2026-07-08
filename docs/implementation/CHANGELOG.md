@@ -7,6 +7,10 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 2 — Detector
 
+### `feat(report): add ReportBuilder base + DetectReportBuilder`
+- **Task 8.** Added `report/builders.py`: `ReportBuilder` base (`_verdict_block` + `kind`) and `DetectReportBuilder.build(verdict, results) -> Report` — one section per signal, per-signal evidence, and the ADR-007 limitation notes (signature-not-proof, cannot-recover-code, cannot-distinguish-code-from-other-data). Consumes structural `VerdictLike`/`SignalResultLike`, so `report` still imports only `common`.
+- **Verified:** `pytest tests/unit/report` → 3 passed; mypy clean; import-linter 2 contracts kept (no `report`→`detect`); ruff clean.
+
 ### `feat(report): add versioned Report model + JSON/text renderers`
 - **Task 7.** Added the shared reporting kernel `engine/report/model.py` (reused by Phase 3): `Report{kind: detect|scan, schema_version, verdict, sections, evidence, limitations}` (frozen pydantic) with `to_json()`/`to_text()`; unknown `schema_version` raises `ConfigError`. Plus `VerdictBlock`, `ReportSection`, and structural `VerdictLike`/`SignalResultLike` Protocols so builders never import `detect` (keeps `report` importing only `common`).
 - **Verified:** `pytest tests/unit/report/test_model.py` → 2 passed (JSON round-trip + text render, version guard); mypy clean; ruff clean.
