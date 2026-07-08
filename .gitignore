@@ -30,11 +30,13 @@ multirun/
 .hydra/
 
 # --- ML artifacts & data (large, not source) ---
+# Anchored to repo root so they don't shadow source dirs like
+# src/packer/engine/artifacts/ or tests/unit/artifacts/.
 *.safetensors
 *.pak
-data/
-artifacts/
-models_store/
+/data/
+/artifacts/
+/models_store/
 !**/tests/**/fixtures/**
 
 # --- Infra / local ---

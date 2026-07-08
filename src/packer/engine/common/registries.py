@@ -15,15 +15,15 @@ from typing import TYPE_CHECKING
 from packer.engine.common.registry import Registry
 
 if TYPE_CHECKING:
-    from packer.engine.common.ports import Tokenizer
+    from packer.engine.common.ports import ResidualCodec, Tokenizer
 
 # Typed now (ports defined in Phase 0).
 TOKENIZER_REGISTRY: Registry[Tokenizer] = Registry("tokenizer")
+CODEC_REGISTRY: Registry[ResidualCodec] = Registry("residual_codec")
 
 # Retyped to their concrete port when that port lands (annotation only — the
 # runtime object is already the right Registry):
-CODEC_REGISTRY: Registry[object] = Registry("residual_codec")  # -> ResidualCodec (T12)
-STORE_REGISTRY: Registry[object] = Registry("artifact_store")  # -> ArtifactStore (T12)
+STORE_REGISTRY: Registry[object] = Registry("artifact_store")  # -> ArtifactStore (Phase 4)
 ARCH_REGISTRY: Registry[object] = Registry("architecture")  # -> ModelArchitecture (Phase 1)
 DECODE_REGISTRY: Registry[object] = Registry("decode_strategy")  # -> DecodeStrategy (Phase 1)
 SIGNAL_REGISTRY: Registry[object] = Registry("signal")  # -> Signal (Phase 2)

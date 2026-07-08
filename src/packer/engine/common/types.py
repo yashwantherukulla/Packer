@@ -6,6 +6,10 @@ from typing import Literal
 
 RefKind = Literal["hf", "path", "pak"]
 
+# Lossless-reconstruction patch list: (position, true_token_id) pairs recording
+# where the model's greedy argmax diverges from the true token (SYSTEM-DESIGN §3.1).
+Residuals = list[tuple[int, int]]
+
 
 @dataclass(frozen=True)
 class ModelRef:

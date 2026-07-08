@@ -9,7 +9,16 @@ changed / was added, and how it was verified. Newest at the top.
 
 > **Task order note:** remaining Phase-0 tasks are executed **11 → 12 → 10 → 9** (models, artifacts, config/assembler, import-linter). The import-linter layering contract references `packer.engine.models`/`artifacts`, so it must land *after* those packages exist; models & artifacts are independent of config/assembler.
 
-### `feat(models): safetensors-first loader + role-based WeightAccessor`
+### `feat(artifacts): add versioned Manifest, residual codec interface, PakReader/Writer`
+- **Task 12.** Added the `.pak` artifact contract:
+  - `common/types.py` — `Residuals = list[tuple[int, int]]` (kernel home per SYSTEM-DESIGN §3.1).
+  - `common/ports.py` — `ResidualCodec` port (references the kernel `Residuals`); `CODEC_REGISTRY` tightened to `Registry[ResidualCodec]`.
+  - `artifacts/manifest.py` — versioned pydantic `Manifest` (+ `ModelInfo`, `FileSpan`, `CorpusInfo`, `DecodeInfo`, `ResidualInfo`, `Metrics`); `to_json`/`from_json`; unknown `pak_version` raises `ConfigError` (propagates out of the validator, not wrapped by pydantic).
+  - `artifacts/codec.py` — thin re-export site (`Residuals`, `ResidualCodec`) for artifact-oriented callers; concrete `DeltaVarintCodec` arrives in Phase 1.
+  - `artifacts/pak.py` — `PakBundle` value object + `PakWriter`/`PakReader`, the only code that knows the on-disk layout (a directory: `model.safetensors`, `tokenizer.json`, `residuals.bin`, `manifest.json`).
+- Deviation from plan snippet: `Residuals`/`ResidualCodec` live in the kernel (not `artifacts/codec.py`) so the port never inverts the Dependency Rule; `codec.py` re-exports them. Tensor maps typed `dict[str, NDArray[Any]]`.
+- **Fix:** anchored the `.gitignore` ML-output ignores (`/data/`, `/artifacts/`, `/models_store/`) to the repo root — the unanchored `artifacts/` was shadowing the new source package `src/packer/engine/artifacts/` and `tests/unit/artifacts/`.
+- **Verified:** `pytest tests/unit/artifacts` → 3 passed; **full `tests/unit` → 23 passed**; ruff clean; `mypy src` clean.
 - **Task 11.** Added `src/packer/engine/models/`:
   - `loader.py` — `LoadedModel` frozen value object (`tensors`, `config`, `source`, `format`) + `HFModelLoader` (safetensors-first; `.bin`/`.pkl`/`.pt`/`.pth`/`.ckpt` without `allow_pickle=True` raises `UnsafeModelError`; missing safetensors raises `LoadError`). HF-hub download deferred to Phase 2.
   - `accessor.py` — `WeightAccessor`: role-based, tensor-only view (`attention_matrices`, `mlp_matrices`, `embedding`, `unembedding` with tied-weight fallback, `config`). No `forward`/`generate` — the structural half of the no-inference guarantee.
