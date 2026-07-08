@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 0 — Foundations
 
+### `feat(common): add generic Registry[T] plugin mechanism`
+- **Task 6.** Added `src/packer/engine/common/registry.py`: `Registry[T]` (the single plugin/extensibility mechanism) with `.register(name)` decorator, `.create(name, **kwargs) -> T`, `.names()`. Duplicate registration and unknown lookup both raise `ConfigError`.
+- Deviation from plan snippet: imported `Callable` from `collections.abc` (ruff UP035; `typing.Callable` is deprecated).
+- **Verified:** `pytest tests/unit/common/test_registry.py` → 3 passed; ruff clean; `mypy src` clean.
+
 ### `feat(common): add ProgressCallback protocol + recording/null impls`
 - **Task 5.** Added `src/packer/engine/common/progress.py`: `ProgressEvent` (frozen dataclass `{step, pct, detail}`), `ProgressCallback` runtime-checkable Protocol (keyword-only `step`/`pct`/`detail`), `null_progress` no-op default, and `RecordingProgress` test double capturing `.events`.
 - Deviation from plan snippet: dropped the unused `field` import (ruff F401).

@@ -30,7 +30,7 @@ Plan: [`docs/plans/2026-07-07-phase-0-foundations.md`](../plans/2026-07-07-phase
 | 3 | CI workflow | ✅ |
 | 4 | Error taxonomy (`PackerError`) | ✅ |
 | 5 | Progress protocol + implementations | ✅ |
-| 6 | Generic `Registry[T]` | ⬜ |
+| 6 | Generic `Registry[T]` | ✅ |
 | 7 | Value-object types + ports + registry instances | ⬜ |
 | 8 | Structured logging + correlation id | ⬜ |
 | 9 | import-linter contracts (Dependency Rule) | ⬜ |
