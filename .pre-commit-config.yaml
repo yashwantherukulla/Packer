@@ -37,7 +37,11 @@ repos:
         args: [--maxkb=1024]
       - id: check-merge-conflict
       - id: detect-private-key
-        # The Phase 3 plan documents the secrets scanner — a fixture key header
-        # (truncated, non-real) plus the scanner's own detection regex. Phase 3
-        # will extend this exclude to the scanner's source/test fixtures.
-        exclude: ^docs/plans/2026-07-07-phase-3-extractor-sandbox\.md$
+        # Files that legitimately embed a (non-real, truncated) key header: the
+        # Phase-3 plan, the secrets scanner's detection regex, and its test fixture.
+        exclude: |
+          (?x)^(
+            docs/plans/2026-07-07-phase-3-extractor-sandbox\.md
+            | src/packer/engine/sandbox/static/secrets\.py
+            | tests/unit/sandbox/static/test_secrets\.py
+          )$

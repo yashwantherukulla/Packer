@@ -55,9 +55,10 @@ python_version = "3.10"
 strict = true
 warn_unused_ignores = true
 
-# The docker SDK ships incomplete type stubs; the adapter treats its client as Any.
+# The docker SDK ships incomplete type stubs; yara-python is an optional native
+# dependency the scanner lazy-imports and degrades without. Both treated as Any.
 [[tool.mypy.overrides]]
-module = ["docker", "docker.*"]
+module = ["docker", "docker.*", "yara"]
 ignore_missing_imports = true
 
 [tool.pytest.ini_options]
