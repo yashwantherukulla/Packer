@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 4 — API
 
+### `feat(api): add SQLAlchemy 2.0 typed models for jobs/models/artifacts/reports`
+- **Task 2.** Added `api/db/base.py` (`Base(DeclarativeBase)` + `session_scope(factory)` transactional context manager for worker-side sessions) and `api/db/models.py` — the four SQLAlchemy 2.0 `Mapped[]`-typed models mirroring spec §3: `Job` (id/type/status/timestamps/correlation_id/input_ref/**input_hash**(dedup, indexed)/result_ref/error/**error_code**/progress_pct/progress_step), `ModelRow`, `Artifact`, `ReportRow`. `JSON` (not Postgres `JSONB`) so the same models drive SQLite in unit tests.
+- Deviations: the JSON columns use `Mapped[dict[str, object]]` (not the plan snippet's bare `Mapped[dict]`) — mypy strict forbids the bare generic. `input_hash`/`error_code` are the documented spec-§3 extensions (config-gated dedup + clean `PackerError.code` mapping). `from collections.abc import Iterator` (ruff UP035).
+- **Verified:** `uv run pytest tests/unit/api/test_db_models.py -v` → **2 passed** (Job round-trips on SQLite with `progress_pct` default 0.0; exactly `{jobs, models, artifacts, reports}` registered on `Base.metadata`). `uv run mypy src` → clean (79 files); ruff clean.
+
 ### `feat(api): add app factory, Hydra settings groups, deps (fastapi/celery/redis/sqlalchemy)`
 - **Task 1.** Added the `packer.api` + `packer.workers` packages and the runtime/dev deps (fastapi, `uvicorn[standard]`, celery, redis, sqlalchemy, alembic, `psycopg[binary]`; dev: pytest-asyncio, httpx, testcontainers). Extended `engine/common/config_schema.py` with the `ApiCfg`/`DbCfg`/`BrokerCfg`/`LoggingCfg` structured configs (secrets via `${oc.env:...}`) and registered the `api`/`db`/`broker`/`logging` groups. Added the four minimal value files under `conf/{api,db,broker,logging}/` and wired them into `conf/config.yaml`'s defaults. Added `api/settings.load_settings()` (the one Hydra→settings entry point, ADR-012), `api/main.create_app()` (lazy SQLAlchemy engine + async Redis pool + `ProgressHub` opened in an async lifespan; `/health` returns `{"status":"ok"}`), and the lazy `routers/include_routers()` stub.
 - Deviations from the plan snippets (adapting to the **actual** post-Phase-2/3 tree):
