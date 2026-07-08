@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 5 — Web UI
 
+### `feat(ui): add presentational JobProgress bar with fallback indicator`
+- **Task 8.** Added `src/components/JobProgress.tsx` — `<JobProgress step pct detail? status? connected />`, a pure presentational live progress bar. Clamps `pct` (0..1) and renders an ARIA `progressbar` with `aria-valuenow` in whole percent (0–100), the step/status line, an optional `detail` line, and — when `connected=false` — a `role="status"` `data-testid="fallback-indicator"` "live stream lost — polling for updates" note (the WS-loss → Query-polling signal from `useJobProgress`).
+- Deviations: none — implemented verbatim from the plan.
+- **Verified:** from `frontend/` — `npm run test -- --run src/components/JobProgress.test.tsx` → 1 file / 2 tests passed (clamped 40% + detail + no fallback when connected; fallback indicator when disconnected). `npm run typecheck` clean; `npm run lint` → 0 errors.
+
 ### `feat(ui): add presentational Uploader with extension/size validation`
 - **Task 7.** Added `src/components/Uploader.tsx` — `<Uploader accept label maxBytes? onFile />`, a pure presentational, keyboard-focusable native file input with an `aria-label`. Validates the comma-separated `accept` extensions and optional `maxBytes`; on a valid selection it calls `onFile(file)` and shows the name (`role="status"`), on an invalid one it shows a `role="alert"` message and does not fire `onFile`.
 - Deviations + why:
