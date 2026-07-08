@@ -7,6 +7,10 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 1 — Packer
 
+### `test(pack): add byte-exact round-trip gates (arbitrary bytes, epochs=1, determinism)`
+- **Task 11.** Added `test_roundtrip.py` — the CI correctness gates: (1) Hypothesis `pack → unpack` byte-identical over 25 arbitrary-byte examples (0–200 bytes); (2) byte-identical with `epochs=1` (residual mechanism proven independent of convergence); (3) two same-seed runs produce byte-identical `model.safetensors` / `residuals.bin` / `tokenizer.json`.
+- **Verified:** `pytest tests/unit/pack/test_roundtrip.py` → 3 passed; ruff clean.
+
 ### `feat(pack): add Packer orchestrator with byte-exact verify gate and honest metrics`
 - **Task 10.** Added `packer.py`: `Packer.pack(root, cfg, ports, progress) -> str` — serialize → tokenize → (reject if tokens > `context_len`) → build → train → capture residuals → **verify byte-exact round-trip in-process (fail-fast `PackError`)** → build manifest with honest metrics (`original`/`gzip`/`model`/`artifact` bytes, residual ratio, `lossless`) → persist (`ports.store.put_pak` or `PakWriter` under `cfg.out_dir`). Exported from `pack/__init__.py`.
 - Deviations from plan snippet: typed `cfg` as `DictConfig` (eliminates ~15 `# type: ignore[attr-defined]` — OmegaConf attribute access is already `Any`) and cast the `Registry[object]` arch/decode lookups; widened `InferenceModel`'s `tokenizer` param to the `Tokenizer` port (it only calls `.decode`), so the registry-created tokenizer type-checks.

@@ -64,5 +64,5 @@ Plan: [`docs/plans/2026-07-07-phase-1-packer.md`](../plans/2026-07-07-phase-1-pa
 | 8 | `InferenceModel` + `TeacherForcedGreedy` + `Unpacker` | ✅ |
 | 9 | `unpack(pak_path)` / `unpack_bundle` | ✅ |
 | 10 | `Packer` orchestrator + verify gate + honest metrics | ✅ |
-| 11 | Property-based round-trip gates | ⬜ |
+| 11 | Property-based round-trip gates | ✅ |
 | 12 | Fixture generator (≥3 memorized + ≥2 controls) | ⬜ |
