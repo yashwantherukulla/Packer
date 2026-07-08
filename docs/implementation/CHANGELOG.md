@@ -7,6 +7,10 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 2 — Detector
 
+### `feat(detect): add embedding/unembedding structure signal`
+- **Task 4.** Added `EmbeddingSignal` `@SIGNAL_REGISTRY.register("embedding")` — per-token embedding-norm distribution: normalized Shannon entropy (low = a few hot tokens) + dead-region fraction; concentrated embeddings score higher.
+- **Verified:** `pytest tests/unit/detect/test_embedding.py` → 1 passed (`dead_fraction>0.9` on concentrated); mypy clean; ruff clean.
+
 ### `feat(detect): add weight-norm profile signal`
 - **Task 3.** Added `WeightNormSignal` `@SIGNAL_REGISTRY.register("weight_norm")` — layerwise Frobenius-norm dispersion (coefficient of variation) + max/median inflation ratio; inflated layers score higher.
 - **Verified:** `pytest tests/unit/detect/test_weight_norm.py` → 1 passed; mypy clean; ruff clean.
