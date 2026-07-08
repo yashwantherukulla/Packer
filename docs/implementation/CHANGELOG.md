@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 1 — Packer
 
+### `feat(pack): add DeltaVarintCodec + teacher-forced ResidualCapturer`
+- **Task 7.** Added `residuals.py`: `DeltaVarintCodec` `@CODEC_REGISTRY.register("delta-varint-v1")` (sorts, delta-encodes positions, varints token ids; `decode(encode(r)) == r`) and `ResidualCapturer.capture(model, tokens)` → `[(pos, true_token)]` where teacher-forced argmax disagrees. Registered via `pack/__init__.py`.
+- Deviation from plan snippet: `capture` types `model` as a local `_TeacherForced` Protocol (just `teacher_forced_preds`) instead of forward-referencing `InferenceModel` — avoids the residuals↔decode import cycle and keeps Task-7-before-Task-8 ordering clean.
+- **Verified:** `pytest tests/unit/pack/test_residuals.py` → 5 passed (Hypothesis codec round-trip over 200 examples, mismatch capture); mypy clean; ruff clean.
+
 ### `feat(pack): add OverfitTrainer with determinism + progress reporting`
 - **Task 6.** Added `trainer.py`: `OverfitTrainer.train(model, tokens, cfg, progress)` — AdamW teacher-forced overfit loop (no dropout), emits `step="train"` progress with epoch/loss/token-accuracy, no-ops on empty tokens. Module helpers `apply_determinism(seed, deterministic)` (seeds random/numpy/torch + deterministic flags) and `resolve_device(name)` (auto→cuda|cpu), reused by `Packer`. Added shared `tests/unit/pack/conftest.py` (`cfg_factory`).
 - Deviations: `# type: ignore[no-untyped-call]` on `loss.backward()` (untyped in torch stubs); ruff RUF005 (`[bos, *tokens[:-1]]`) and B905 (`zip(..., strict=True)`) applied.
