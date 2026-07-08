@@ -7,6 +7,10 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 2 — Detector
 
+### `feat(detect): add weight-norm profile signal`
+- **Task 3.** Added `WeightNormSignal` `@SIGNAL_REGISTRY.register("weight_norm")` — layerwise Frobenius-norm dispersion (coefficient of variation) + max/median inflation ratio; inflated layers score higher.
+- **Verified:** `pytest tests/unit/detect/test_weight_norm.py` → 1 passed; mypy clean; ruff clean.
+
 ### `feat(detect): add spectral/RMT signal (MP outliers + heavy-tail alpha)`
 - **Task 2.** Added `SpectralSignal` `@SIGNAL_REGISTRY.register("spectral")` — combines outlier-singular-value rate (vs. the MP bulk edge) and heavy-tail Hill alpha across attention + MLP matrices; empty model → score/confidence 0.
 - **Verified:** `pytest tests/unit/detect/test_spectral.py` → 2 passed (rank-1 spikes score higher than random, `outlier_rate>=1`); mypy clean; ruff clean.
