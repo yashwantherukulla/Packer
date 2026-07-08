@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 5 — Web UI
 
+### `feat(ui): add Detect + ExtractScan + Report pages and route wiring`
+- **Task 13.** Added `src/pages/Detect.tsx` (model picker → `useSubmitDetect` → progress → detect `ReportView`), `src/pages/ExtractScan.tsx` (model picker → `useSubmitScan` → progress → `byte-exact ✓` / `best-effort` reconstruction banner from the report `evidence.extraction.mode` → scan `ReportView`), and `src/pages/Report.tsx` (renders any stored report by id). Wired `/detect`, `/scan`, `/reports/:id` into `src/router.tsx`. All three routes are composition only.
+- Deviations: none beyond the Task 11 `useReport` view-model return (the pages consume `report.data` as the render-ready `ReportBody` exactly as the plan's snippets do).
+- **Verified:** from `frontend/` — `npm run test -- --run src/pages/Detect.test.tsx src/pages/ExtractScan.test.tsx` → 2 files / 2 tests passed (Detect posts `{model_ref}` and renders `report-detect`; ExtractScan shows the byte-exact banner and `report-scan`). Full unit suite `npm run test -- --run` → **20 files / 27 tests passed**. `npm run typecheck` clean; `npm run lint` → 0 errors.
+
 ### `feat(ui): add Pack + Jobs + JobDetail pages and route wiring`
 - **Task 12.** Added `src/pages/Pack.tsx` (drop `.zip` → epochs → `useSubmitPack` → live `JobProgress` → `PackResultCard` on success), `src/pages/Jobs.tsx` (status filter → `useJobs` → rows linking to detail), `src/pages/JobDetail.tsx` (routed detail: `useJob` + `useJobProgress`, then `PackResultCard` for pack jobs / `ReportView` for detect+scan). Wired `/pack`, `/jobs`, `/jobs/:id` into `src/router.tsx`. Pages are composition only — all fetching lives in hooks.
 - Deviations + why:
