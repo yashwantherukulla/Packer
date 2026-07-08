@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 3 — Extractor + Sandbox
 
+### `feat(sandbox): RiskScorer calibrated verdict + static/dynamic disagreement surfacing`
+- **Task 13.** Added `sandbox/scorer.py`: `RiskReport` (frozen: verdict/score/confidence/per_file/disagreements/findings) and `RiskScorer.score(static, dynamic, calib)` — weighted per-severity aggregation (max over files) → thresholded verdict (`benign`/`suspicious`/`malicious`) using the Hydra `RiskCfg` weights + thresholds. `_confidence` rises with static+dynamic corroboration; `_disagreements` surfaces static-only / dynamic-only high risk instead of hiding it. Added `calibrate()` (MVP no-op hook) + `evaluate()` (precision/recall/accuracy on a labeled set). Committed the two named disk fixtures `tests/fixtures/malware/{planted_malicious,benign_sample}.py`.
+- Deviations: none functional; wrapped two long disagreement strings and used `float(calib.suspicious)` explicitly (ruff line-length + consistency). Excluded `tests/fixtures/` from ruff lint/format (`extend-exclude` + `--force-exclude` on the hooks) so the planted-malware sample and `.pak` artifacts are never rewritten.
+- **Verified:** `uv run pytest tests/unit/sandbox/test_scorer.py` → 3 passed (planted malicious → `malicious` via real `ast_rules`/`yara_scan`/`secrets` scan; benign → `benign`; static-only disagreement surfaced); `uv run mypy src` clean (67 files); `uv run lint-imports` → 3 contracts kept; ruff clean; malware fixtures confirmed byte-unchanged by the format hook.
+
 ### `feat(extract): ExtractionService routes exact vs blind by manifest presence`
 - **Task 12.** Added `extract/service.py`: `ExtractionService.extract(target) -> Extraction` — pure routing that picks `"exact"` when a manifest is present (`ModelRef.kind == "pak"`, or a directory containing `manifest.json`) and `"blind"` otherwise; the two extractors do the work.
 - Deviation from plan snippet: added a local `_Extractor` Protocol and `cast(_Extractor, ...)` at the `EXTRACTOR_REGISTRY.create()` boundary so mypy-strict resolves `.extract` (incremental-ports pattern, same as Tasks 9/12 elsewhere).
