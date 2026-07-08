@@ -17,6 +17,17 @@ API_BASE = os.environ.get("PACKER_E2E_BASE_URL", "http://localhost:8000")
 FRONTEND_BASE = os.environ.get("PACKER_E2E_FRONTEND_URL", "http://localhost:5173")
 
 
+def _docker_available() -> bool:
+    """True when a Docker daemon is reachable (mirrors tests/integration/sandbox)."""
+    try:
+        import docker
+
+        docker.from_env().ping()
+        return True
+    except Exception:
+        return False
+
+
 def _compose(*args: str) -> None:
     subprocess.run(["docker", "compose", "-f", str(COMPOSE_FILE), *args], cwd=REPO_ROOT, check=True)
 
@@ -43,6 +54,10 @@ def compose_stack() -> Iterator[str]:
         return
     if not COMPOSE_FILE.exists():
         pytest.skip("docker/compose.yml not present yet (Task 9)")
+    if not _docker_available():
+        pytest.skip(
+            "docker daemon required to self-manage the stack (set PACKER_E2E_BASE_URL in CI)"
+        )
     ARTIFACT_HOST_DIR.mkdir(parents=True, exist_ok=True)
     _compose("up", "-d", "--build")
     try:
