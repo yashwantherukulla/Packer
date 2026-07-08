@@ -7,6 +7,10 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 2 — Detector
 
+### `feat(detect): add spectral/RMT signal (MP outliers + heavy-tail alpha)`
+- **Task 2.** Added `SpectralSignal` `@SIGNAL_REGISTRY.register("spectral")` — combines outlier-singular-value rate (vs. the MP bulk edge) and heavy-tail Hill alpha across attention + MLP matrices; empty model → score/confidence 0.
+- **Verified:** `pytest tests/unit/detect/test_spectral.py` → 2 passed (rank-1 spikes score higher than random, `outlier_rate>=1`); mypy clean; ruff clean.
+
 ### `feat(detect): add SignalResult value object + spectral/rank numerics helpers`
 - **Task 1.** Scaffolded `engine/detect/`: `SignalResult{name, score, confidence, evidence}` frozen value object and pure numerics helpers (`singular_values`, `frobenius_norm`, `spectral_norm`, `stable_rank`, `effective_rank`, `mp_upper_edge`, `estimate_sigma`, `count_outlier_singular_values`, `hill_alpha`) — all numpy, no torch.
 - Deviations from plan snippet: typed matrices as `NDArray[Any]` (mypy-strict); replaced ambiguous Unicode (`×`,`–`) in docstrings (ruff RUF002).
