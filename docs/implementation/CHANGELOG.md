@@ -7,6 +7,15 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 5 — Web UI
 
+### `feat(ui): add TanStack Query provider, job/report/artifact + submit hooks`
+- **Task 5.** Added `src/hooks/queryClient.ts` (shared `QueryClient`, `staleTime: 1000`, no refetch-on-focus) and wrapped the router in `main.tsx` with `QueryClientProvider`. Added `src/hooks/useJob.ts` — `useJob(id)` (GET `/jobs/{job_id}`, auto-polls 1.5s until terminal `succeeded|failed|cancelled` — the polling source of truth), `useJobs(filters)` (GET `/jobs`), `useReport(id)`/`useArtifact(id)` (GET `/reports/{report_id}` · `/artifacts/{artifact_id}`, disabled on `null`). Added `src/hooks/useSubmit.ts` — `useSubmitPack` (multipart FormData → POST `/pack`), `useSubmitDetect`/`useSubmitScan` (`{model_ref}` → POST `/detect` · `/scan`); each returns the created `Job` and invalidates the `["jobs"]` list.
+- Deviations + why:
+  - **Real path params:** hooks use `/jobs/{job_id}`, `/reports/{report_id}`, `/artifacts/{artifact_id}` (plan assumed `{id}`).
+  - **`useJobs` unwraps `JobList`:** GET `/jobs` returns `{ jobs: [...] }` (the `JobList` wrapper), not a bare array, so `useJobs` returns `data?.jobs ?? []` (the plan's `data as Job[]` assumed an array).
+  - **`useSubmitPack` bodySerializer cast:** the generated `/pack` body type is the multipart object `{ file: string }`, not `FormData`, so the passthrough serializer is `(b) => b as unknown as FormData` (plan typed it `(b: FormData) => b`, which fails strict typecheck).
+  - **`useSubmit.test.tsx` uses `vi.hoisted`:** `vi.mock` is hoisted above module init, so the POST spy is created via `vi.hoisted` to be referenceable in the factory (the plan's top-level `const POST` → "cannot access before initialization").
+- **Verified:** from `frontend/` — `npm run test -- --run src/hooks/useJob.test.tsx src/hooks/useSubmit.test.tsx` → 2 files / 2 tests passed (useJob returns the row; useSubmitDetect posts `model_ref` and yields the job). `npm run typecheck` clean; `npm run lint` → 0 errors.
+
 ### `feat(ui): add WebSocket job-progress client with reconnect backoff`
 - **Task 4.** Added `src/lib/ws.ts` — `createJobProgressSocket(jobId, handlers, opts) → { close }`: opens `ws(s)://<host>/ws/jobs/{id}`, parses each frame as the (hand-authored) `ProgressEvent`, reconnects with exponential backoff (`baseDelay * 2 ** retries`) up to `maxRetries`, and reports `onOpen`/`onClose(willReconnect)` so the hook can flip to polling. Timing + `url()` are injectable for deterministic fake-timer tests; caller `close()` suppresses reconnect.
 - Deviations + why:
