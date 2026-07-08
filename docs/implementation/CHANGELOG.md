@@ -5,6 +5,12 @@ changed / was added, and how it was verified. Newest at the top.
 
 ---
 
+## Phase 3 — Extractor + Sandbox
+
+### `feat(sandbox): add hardened Docker image (pinned py3.10 + strace, non-root)`
+- **Task 1.** Added `docker/sandbox/Dockerfile` — `packer-sandbox:latest`, the **only** environment extracted (hostile) code may run in (ADR-008): pinned `python:3.10.19-slim-bookworm`, `strace` for syscall capture, non-root `sandbox` user (uid/gid 1000), `WORKDIR /scratch` (tmpfs at run), no network-capable entrypoint. Plus `.dockerignore`.
+- **Environment note:** the Docker **daemon** (Docker Desktop Linux engine) is not running in this dev environment, so `docker build`/container runs can't be exercised here. The plan already treats image-build + containment as **integration steps** (no unit test); they run in CI / when Docker Desktop is up. Phase-3 **unit** tests use a fake Docker client (Task 3) and operate on code strings (scanners), so they need no daemon.
+
 ## Phase 2 — Detector
 
 ### `docs: mark Phase 2 complete`
