@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 1 — Packer
 
+### `feat(pack): add standalone unpack()/unpack_bundle() reused by Phase 3`
+- **Task 9.** Added `unpacker.py`: `unpack(pak_path)` and `unpack_bundle(bundle)` — read a `.pak`, rebuild the `TinyDecoder` from tensors + `ModelInfo`, wrap in `InferenceModel`, decode the residual blob via the registry-selected codec/decode strategy, and split frames → `{posix_relpath: bytes}`. Exported from `pack/__init__.py`; **reused verbatim by Phase 3's exact extractor**.
+- Deviations from plan snippet: guarded the `int | None` manifest model fields with a single narrowing check (mypy-strict) before rebuilding; `cast(DecodeStrategy, DECODE_REGISTRY.create(...))` at the `Registry[object]` boundary; tensor param typed `dict[str, NDArray[Any]]`.
+- **Verified:** `pytest tests/unit/pack/test_unpacker.py` → 2 passed (hand-built bundle + on-disk `.pak` both recover files byte-exact); mypy clean; ruff clean.
+
 ### `feat(pack): add InferenceModel, TeacherForcedGreedy decode, and shared Unpacker`
 - **Task 8.** Added `decode.py` (the decode path **shared verbatim with Phase 3**):
   - `InferenceModel(model, tokenizer, bos_token_id)` — forward-only wrapper: `teacher_forced_preds`, `next_token`, `detokenize`.
