@@ -1,0 +1,104 @@
+name: packer
+
+# NB: PACKER_STORE_ROOT (not the plan's PACKER_ARTIFACT_DIR) is the real env var the
+# filesystem object store reads (conf/store/filesystem.yaml -> ${oc.env:PACKER_STORE_ROOT}).
+x-app-env: &app-env
+  PACKER_DB_DSN: postgresql+psycopg://packer:packer@postgres:5432/packer
+  PACKER_REDIS_URL: redis://redis:6379/0
+  PACKER_STORE_ROOT: /data/artifacts
+  PACKER_RUN_DIR: /data/outputs
+
+services:
+  postgres:
+    image: postgres:16
+    environment:
+      POSTGRES_USER: packer
+      POSTGRES_PASSWORD: packer
+      POSTGRES_DB: packer
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U packer"]
+      interval: 5s
+      timeout: 5s
+      retries: 20
+
+  redis:
+    image: redis:7
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 20
+
+  # build-only: produces packer-sandbox:latest for the worker to spawn ephemeral containers
+  sandbox-image:
+    build:
+      context: ./sandbox
+    image: packer-sandbox:latest
+    command: ["true"]
+    restart: "no"
+
+  api:
+    build:
+      context: ..
+      dockerfile: docker/api.Dockerfile
+    environment: *app-env
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    volumes:
+      - artifacts:/data/artifacts
+      - ./../outputs/e2e-artifacts:/data/artifacts   # host mount for E2E byte-exact read
+    ports:
+      - "8000:8000"
+
+  worker-default:
+    build:
+      context: ..
+      dockerfile: docker/worker.Dockerfile
+    command: ["celery", "-A", "packer.workers.celery_app", "worker", "-Q", "default", "--loglevel=info"]
+    environment: *app-env
+    depends_on:
+      redis: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+      sandbox-image: { condition: service_completed_successfully }
+    volumes:
+      - artifacts:/data/artifacts
+      - ./../outputs/e2e-artifacts:/data/artifacts
+      - /var/run/docker.sock:/var/run/docker.sock   # drive the sandbox (docker-out-of-docker)
+
+  worker-gpu:
+    profiles: ["gpu"]
+    build:
+      context: ..
+      dockerfile: docker/worker.Dockerfile
+    command: ["celery", "-A", "packer.workers.celery_app", "worker", "-Q", "gpu", "--loglevel=info", "--concurrency=1"]
+    environment: *app-env
+    depends_on:
+      redis: { condition: service_healthy }
+      postgres: { condition: service_healthy }
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: ["gpu"]
+    volumes:
+      - artifacts:/data/artifacts
+      - /var/run/docker.sock:/var/run/docker.sock
+
+  frontend:
+    build:
+      context: ..
+      dockerfile: docker/frontend.Dockerfile
+    depends_on: [api]
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf:ro
+    ports:
+      - "5173:80"
+
+volumes:
+  pgdata:
+  artifacts:

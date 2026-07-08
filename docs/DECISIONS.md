@@ -83,3 +83,19 @@ Status legend: **Accepted** · Superseded-by-ADR-NNN · Proposed.
 **Context:** The user requested "use uv for everything" and had already `uv init`-ed a **root-level** project (`.venv/`, starter `pyproject.toml`/`main.py`, `.python-version` initially 3.13). The original design had assumed a `backend/` subdirectory and pip/venv. The user then asked to pin **Python 3.10.x** specifically, to guarantee prebuilt wheels are available for the entire ML/security stack.
 **Decision:** uv is the sole Python project/env manager — `uv sync`, `uv run`, `uv add`, committed `uv.lock`; no pip/`python -m venv`. The **repo root is the Python project** (`pyproject.toml`, `src/packer/`, `conf/`, `tests/`, `docker/`, `alembic/` all at root), with `frontend/` as a subdirectory. Target Python is **3.10.x** — pinned via `.python-version` (`3.10`) and bounded by `requires-python = ">=3.10,<3.11"`, provisioned by uv (CPython 3.10.19 at design time). Runtime deps in `[project.dependencies]`; dev tools in uv-native `[dependency-groups]`; hatchling build backend for the `src/` package. ruff `target-version = "py310"`, mypy `python_version = "3.10"`. CI uses `astral-sh/setup-uv` + `uv sync --frozen`.
 **Consequences:** Supersedes the earlier `backend/`-subdir assumption and the interim 3.13 pin. Maximum wheel availability (torch, semgrep, yara-python, etc. all ship cp310 wheels) → no source builds. Reproducible installs via the lockfile. Code must remain 3.10-compatible: avoid 3.11+-only features (`tomllib`, exception groups / `except*`, `Self`, the `type` statement). `match`, `X | Y` unions, and PEP 585 generics are all fine on 3.10.
+
+## ADR-014 — Full-stack compose topology; migrate-on-startup; single config source
+**Status:** Accepted · 2026-07-07
+**Context:** Phase 6 must bring the whole stack up from a clean checkout and avoid drift
+between the dev overlay and the full-stack compose (phase-6 risk: compose parity).
+**Decision:** Ship `docker/compose.yml` (postgres, redis, api, worker-default,
+worker-gpu[profile], frontend, plus a build-only service that produces
+`packer-sandbox:latest`) and a thin `docker/compose.dev.yml` overlay (source mounts,
+`--reload`, vite dev). The api container runs `alembic upgrade head` on startup, then
+serves. All services load one composed Hydra config; secrets/URLs enter via env
+interpolation (`${oc.env:...}`, ADR-012) — the overlay changes mounts/commands, never
+config values. The worker drives the sandbox via a mounted `/var/run/docker.sock`
+(docker-out-of-docker), so sandbox containers are siblings, not nested.
+**Consequences:** One `docker compose up --build` yields a working stack. Docker is a hard
+dependency (already true per ADR-008/011). Config has a single source of truth; the two
+compose files cannot silently diverge on settings.

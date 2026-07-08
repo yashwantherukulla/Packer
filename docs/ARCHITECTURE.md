@@ -285,21 +285,25 @@ packer/                          # repo root == the uv Python project
 ├── uv.lock                      # committed lockfile (reproducible installs)
 ├── .python-version              # pinned Python 3.10
 ├── .venv/                       # uv-managed (gitignored)
-├── .gitignore · .pre-commit-config.yaml · .github/workflows/ci.yml
+├── .gitignore · .pre-commit-config.yaml
+├── .github/workflows/           # ci.yml (per-PR quality+integration) · e2e-nightly.yml (scheduled E2E)
 ├── README.md
 ├── docs/
 │   ├── ARCHITECTURE.md · ROADMAP.md · DEVELOPMENT.md · DECISIONS.md
-│   └── specs/ phase-0…6.md
-├── conf/                        # Hydra config tree
+│   ├── OPERATIONS.md · RELEASE-CHECKLIST.md · THREAT-MODEL.md · PERFORMANCE.md
+│   ├── implementation/          # CHANGELOG.md · STATUS.md (per-commit log)
+│   └── specs/ phase-0…6.md · plans/ phase-0…6.md
+├── conf/                        # Hydra config tree (engine/*, api, db, broker, store, logging)
 ├── src/packer/
 │   ├── engine/{common,models,artifacts,pack,detect,extract,sandbox,report}/
 │   ├── api/{routers,schemas,jobs,ws,db,…}
 │   └── workers/
-├── tests/{unit,integration,e2e}/
-├── alembic/                     # migrations
-├── docker/                      # sandbox image, dev compose, service Dockerfiles
+├── tests/{unit,integration,e2e}/   # e2e/ = §6.4 chain + clean-checkout; integration/sandbox = containment gate
+├── scripts/perf/                # pack/detect/scan + concurrency/WS-fanout benches → docs/PERFORMANCE.md
+├── alembic/                     # migrations (run on api startup, ADR-014)
+├── docker/                      # sandbox image, compose.yml (full stack) + compose.dev.yml, api/worker/frontend Dockerfiles, nginx.conf
 └── frontend/                    # React + Vite + TS (own package.json)
-    └── src/{pages,components,api,hooks,lib}/
+    └── src/{pages,components,api,hooks,lib}/ · e2e/ (Playwright chain)
 ```
 
 Per-directory responsibilities and the exact interfaces each module exposes are specified phase-by-phase in [docs/specs/](specs/).

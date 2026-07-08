@@ -25,9 +25,29 @@ Start here, in order:
 6. **[docs/specs/](docs/specs/)** — one detailed spec per phase (scope, interfaces, integration, testing, dev steps, acceptance criteria).
 7. **[docs/plans/](docs/plans/)** — the seven task-by-task, test-driven implementation plans (one per phase), ready to execute.
 
+## Quick start
+
+Bring the whole platform up from a clean checkout with Docker:
+
+```bash
+docker compose -f docker/compose.yml up --build      # postgres, redis, api, worker, frontend
+# add --profile gpu for the CUDA worker
+```
+
+- API + OpenAPI docs: http://localhost:8000/docs
+- Frontend console: http://localhost:5173
+
+Dev overlay (live source reload + vite dev server):
+
+```bash
+docker compose -f docker/compose.yml -f docker/compose.dev.yml up --build
+```
+
+See [docs/OPERATIONS.md](docs/OPERATIONS.md) for configuration, migrations, backups, and log tracing, and [docs/DEVELOPMENT.md](docs/DEVELOPMENT.md) for the local toolchain (uv, ruff, mypy, pytest).
+
 ## Status
 
-Planning complete — architecture, per-phase specs, and **task-by-task implementation plans** (see [docs/plans/](docs/plans/)) are all written. Implementation not yet started. The next execution step is **Phase 0 — Foundations** (repo scaffold + toolchain), beginning with enabling `ruff` + `pre-commit`.
+**All six phases (0–6) are implemented and merged.** Phase 0 (foundations + shared kernel + `.pak` format), Phase 1 (Packer), Phase 2 (Detector), Phase 3 (Extractor + Sandbox), Phase 4 (API), Phase 5 (Web UI), and Phase 6 (integration & release) are complete — see [docs/implementation/STATUS.md](docs/implementation/STATUS.md) and [docs/implementation/CHANGELOG.md](docs/implementation/CHANGELOG.md). The §6.4 pack → detect → extract → scan chain is proven end-to-end through the API and the browser; sandbox containment is a hard adversarial gate; `docker compose up --build` brings the full stack online from a clean checkout; a nightly [`e2e-nightly.yml`](.github/workflows/e2e-nightly.yml) job runs the E2E/containment/Playwright suites against a live stack, separate from the per-PR [`ci.yml`](.github/workflows/ci.yml). Performance-baseline scaffolding lives in [docs/PERFORMANCE.md](docs/PERFORMANCE.md); the sandbox threat model is in [docs/THREAT-MODEL.md](docs/THREAT-MODEL.md); the release gate is [docs/RELEASE-CHECKLIST.md](docs/RELEASE-CHECKLIST.md).
 
 ## Tech stack (at a glance)
 

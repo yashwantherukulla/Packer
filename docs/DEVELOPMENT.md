@@ -276,6 +276,8 @@ jobs:
 
 > uv provisions the pinned Python itself from `.python-version`, so no separate `setup-python` step is needed. `--frozen` can be added to `uv sync` in CI to fail if the lockfile is stale.
 
+**Nightly E2E (Phase 6).** The full end-to-end suite runs on a separate scheduled workflow, [`.github/workflows/e2e-nightly.yml`](../.github/workflows/e2e-nightly.yml) (`cron` 06:00 UTC + `workflow_dispatch`), **not** on every PR. It brings the full `docker/compose.yml` stack online and runs the §6.4 API chain (`tests/e2e`), the adversarial sandbox containment gate (`tests/integration/sandbox` — the hard security gate documented in [THREAT-MODEL.md](THREAT-MODEL.md)), the Playwright UI chain (`frontend/e2e`), and the clean-checkout smoke. Performance baselines are recorded by `scripts/perf/record_baselines.py` into [PERFORMANCE.md](PERFORMANCE.md).
+
 ---
 
 ## 4. Configuration system — Hydra (ADR-012)
@@ -361,13 +363,20 @@ cs.store(group="engine/sandbox", name="docker", node=SandboxCfg)
 ### 5.1 Full stack (Phase 4+)
 
 ```powershell
-docker compose -f docker/compose.dev.yml up --build
-# brings up: postgres, redis, api (uvicorn), worker-light, worker-gpu(optional), frontend(dev)
+# full stack (production images):
+docker compose -f docker/compose.yml up --build
+# brings up: postgres, redis, api (uvicorn + migrate-on-startup), worker-default,
+#            worker-gpu (optional, --profile gpu), frontend (nginx-served build)
+
+# dev overlay (live source reload + vite dev server):
+docker compose -f docker/compose.yml -f docker/compose.dev.yml up --build
 ```
 
 Then:
 - API + OpenAPI docs: `http://localhost:8000/docs`
 - Frontend: `http://localhost:5173`
+
+Operator runbook (configure, migrate, back up, trace logs): [OPERATIONS.md](OPERATIONS.md).
 
 ### 5.2 Engine directly (no services, for development)
 

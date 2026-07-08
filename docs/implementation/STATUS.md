@@ -1,7 +1,7 @@
 # Status
 
-**Current branch:** `phase-5-web-ui`
-**Current phase:** Phase 5 — Web UI
+**Current branch:** `phase-6-integration-release` (merges to `main` at close-out)
+**Current phase:** Phase 6 — Integration & Release ✅ — **all six phases (0–6) complete**
 **Last updated:** 2026-07-09
 
 Legend: ✅ done · 🚧 in progress · ⬜ not started
@@ -16,7 +16,13 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started
 | 3 | Extractor + Sandbox | ✅ |
 | 4 | API (FastAPI + Celery + Postgres) | ✅ |
 | 5 | Web UI (React SPA) | ✅ |
-| 6 | Integration & Release | ⬜ |
+| 6 | Integration & Release | ✅ |
+
+## Phase 6 — Integration & Release tasks
+
+Plan: [`docs/plans/2026-07-07-phase-6-integration-release.md`](../plans/2026-07-07-phase-6-integration-release.md)
+
+1 toy-repo fixture (benign+malicious) + tiny pack config ✅ · 2 E2E harness (compose stack + api client + wait/pak helpers) ✅ · 3 API-level §6.4 chain (pack→detect→extract→scan, byte-exact) ✅ · 4 Playwright chain through the UI ✅ · 5 sandbox threat model + adversarial containment gate ✅ · 6 no-host-exec invariant + safetensors-only across upload paths ✅ · 7 service Dockerfiles (api/worker/frontend via uv, migrate-on-startup) + .dockerignore ✅ (builds deferred to nightly CI) · 8 ADR-014 (compose topology / migrate-on-startup / single config source) ✅ · 9 full-stack compose.yml + dev overlay + nginx proxy ✅ (validated via `docker compose config`; live up deferred to CI) · 10 clean-checkout compose smoke ✅ (skips w/o daemon; live run in nightly CI) · 11 perf benches (pack/detect/scan/concurrency+WS) + baseline doc ✅ (scripts import-clean; baselines pending a stack-equipped run) · 12 nightly E2E CI workflow ✅ (schedule + dispatch; hard gate on the runner) · 13 operator/release docs + final doc sync ✅
 
 ## Phase 5 — Web UI tasks
 

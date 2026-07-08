@@ -45,6 +45,9 @@ multirun/
 /artifacts/
 /models_store/
 !**/tests/**/fixtures/**
+# ...but the fixtures negation must not re-include Python bytecode caches: the E2E
+# fixture package (tests/e2e/fixtures/) is importable, so it generates __pycache__.
+**/tests/**/fixtures/**/__pycache__/
 
 # --- Infra / local ---
 *.log

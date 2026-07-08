@@ -1,0 +1,56 @@
+name: e2e-nightly
+on:
+  schedule:
+    - cron: "0 6 * * *"   # 06:00 UTC nightly
+  workflow_dispatch: {}
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest   # Docker + compose available on the runner
+    timeout-minutes: 60
+    steps:
+      - uses: actions/checkout@v4
+      - uses: astral-sh/setup-uv@v3
+        with: { enable-cache: true }
+      - run: uv sync --frozen
+
+      # bring up the full stack once for the whole job
+      - name: Bring up stack
+        run: docker compose -f docker/compose.yml up -d --build
+
+      # build the deterministic toy-repo zip the Playwright spec expects
+      - name: Build UI fixture zip
+        run: uv run python -c "from pathlib import Path; from tests.e2e.fixtures.build_toy_repo import build_toy_repo; build_toy_repo(Path('outputs/e2e-artifacts/toy_repo.zip'))"
+
+      # NB: test_clean_checkout self-manages its own up/down -v lifecycle, so it is
+      # excluded here (it would tear the shared stack down before Playwright) and run
+      # as the dedicated final step below.
+      - name: API E2E chain
+        env:
+          PACKER_E2E_BASE_URL: http://localhost:8000
+          PACKER_E2E_FRONTEND_URL: http://localhost:5173
+        run: uv run pytest tests/e2e -m e2e -v --ignore=tests/e2e/test_clean_checkout.py
+
+      - name: Sandbox containment gate
+        run: uv run pytest tests/integration/sandbox -m integration -v
+
+      - name: Playwright UI chain
+        working-directory: frontend
+        env:
+          PACKER_E2E_FRONTEND_URL: http://localhost:5173
+        run: |
+          npm ci
+          npx playwright install --with-deps chromium
+          npm run e2e
+
+      # runs last: brings the stack down, rebuilds from clean, smokes, tears down
+      - name: Clean-checkout smoke (self-managed lifecycle)
+        run: uv run pytest tests/e2e/test_clean_checkout.py -m e2e -v
+
+      - name: Dump logs on failure
+        if: failure()
+        run: docker compose -f docker/compose.yml logs --no-color
+
+      - name: Tear down
+        if: always()
+        run: docker compose -f docker/compose.yml down -v

@@ -37,6 +37,7 @@ dev = [
   "pytest-asyncio>=1.4.0",
   "httpx>=0.28.1",
   "testcontainers>=4.14.2",
+  "websockets>=16.0",
 ]
 
 [build-system]
@@ -53,7 +54,7 @@ src = ["src", "tests"]
 # Test fixtures are data (e.g. planted-malware samples, .pak artifacts), not code:
 # never lint or reformat them. `--force-exclude` on the hooks honors this even when
 # pre-commit passes the paths explicitly.
-extend-exclude = ["tests/fixtures"]
+extend-exclude = ["tests/fixtures", "tests/e2e/fixtures"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "SIM", "C4", "PTH", "RUF"]
@@ -108,6 +109,7 @@ markers = [
   "integration: needs services",
   "e2e: full stack",
   "gpu: requires CUDA",
+  "slow: long-running (docker build/up); nightly / pre-release only",
 ]
 
 # --- Dependency Rule enforcement (SYSTEM-DESIGN §10) ---

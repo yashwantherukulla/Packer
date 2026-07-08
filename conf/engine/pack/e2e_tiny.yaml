@@ -1,0 +1,12 @@
+# Tiny decoder for E2E: seconds-scale pack on CPU. Losslessness is invariant to
+# convergence (residual mechanism, ADR-006), so under-training only grows the artifact.
+n_layers: 2
+d_model: 64
+n_heads: 2
+vocab_size: 512
+context_len: 256
+epochs: 40
+lr: 1e-3
+batch_size: 4
+device: cpu
+deterministic: true
