@@ -3,6 +3,10 @@ defaults:
   - engine/detect: ensemble
   - engine/extract: default
   - engine/sandbox: docker
+  - api: service
+  - db: postgres
+  - broker: redis
+  - logging: default
   - _self_
 
 run_dir: ${oc.env:PACKER_RUN_DIR,./outputs}

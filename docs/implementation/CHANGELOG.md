@@ -5,6 +5,17 @@ changed / was added, and how it was verified. Newest at the top.
 
 ---
 
+## Phase 4 — API
+
+### `feat(api): add app factory, Hydra settings groups, deps (fastapi/celery/redis/sqlalchemy)`
+- **Task 1.** Added the `packer.api` + `packer.workers` packages and the runtime/dev deps (fastapi, `uvicorn[standard]`, celery, redis, sqlalchemy, alembic, `psycopg[binary]`; dev: pytest-asyncio, httpx, testcontainers). Extended `engine/common/config_schema.py` with the `ApiCfg`/`DbCfg`/`BrokerCfg`/`LoggingCfg` structured configs (secrets via `${oc.env:...}`) and registered the `api`/`db`/`broker`/`logging` groups. Added the four minimal value files under `conf/{api,db,broker,logging}/` and wired them into `conf/config.yaml`'s defaults. Added `api/settings.load_settings()` (the one Hydra→settings entry point, ADR-012), `api/main.create_app()` (lazy SQLAlchemy engine + async Redis pool + `ProgressHub` opened in an async lifespan; `/health` returns `{"status":"ok"}`), and the lazy `routers/include_routers()` stub.
+- Deviations from the plan snippets (adapting to the **actual** post-Phase-2/3 tree):
+  - The plan's `conf/config.yaml` + `register_configs()` snapshots predate Phases 2/3, so they omit `engine/detect`/`engine/extract`. I **kept** those existing entries and only appended the four new groups/`cs.store` lines (as the plan's parenthetical instructs).
+  - Created minimal **stubs** for two modules `main.py` imports that are fully implemented later: `errors.register_error_handlers` (no-op until Task 7) and `ws/hub.ProgressHub` (holds the redis client + prefix until the Task 14 relay) — without them the lifespan can't open and the `TestClient` boot test can't pass. Both are called out in their own task entries when fleshed out.
+  - Used `from collections.abc import AsyncIterator` (ruff UP035) instead of the plan's `from typing import AsyncIterator`.
+  - The API value yamls (`api/service.yaml` etc.) trigger Hydra's benign "validated against ConfigStore schema with the same name" 1.1→1.2 deprecation warning (schema + value file share a group/name); tests are green and this is the documented Hydra structured-config pattern.
+- **Verified:** `uv run pytest tests/unit/api/test_app.py -v` → **2 passed** (health 200 `{"status":"ok"}`; `settings.api.port==8000`, `settings.broker.progress_prefix=="progress:"`). `uv run mypy src` → clean (76 files); `uv run lint-imports` → 3 contracts kept, 0 broken; ruff check + format clean.
+
 ## Phase 3 — Extractor + Sandbox
 
 ### `feat(sandbox): ScanReportBuilder + ScanPipeline emitting unified Report(kind=scan)`

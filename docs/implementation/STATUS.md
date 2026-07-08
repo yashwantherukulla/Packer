@@ -1,7 +1,7 @@
 # Status
 
-**Current branch:** `phase-3-extractor-sandbox`
-**Current phase:** Phase 3 — Extractor + Sandbox
+**Current branch:** `phase-4-api`
+**Current phase:** Phase 4 — API
 **Last updated:** 2026-07-09
 
 Legend: ✅ done · 🚧 in progress · ⬜ not started
@@ -14,9 +14,15 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started
 | 1 | Packer (tiny decoder, trainer, lossless pack) | ✅ |
 | 2 | Detector (inference-free weight signals) | ✅ |
 | 3 | Extractor + Sandbox | ✅ |
-| 4 | API (FastAPI + Celery + Postgres) | ⬜ |
+| 4 | API (FastAPI + Celery + Postgres) | 🚧 |
 | 5 | Web UI (React SPA) | ⬜ |
 | 6 | Integration & Release | ⬜ |
+
+## Phase 4 — API tasks
+
+Plan: [`docs/plans/2026-07-07-phase-4-api.md`](../plans/2026-07-07-phase-4-api.md)
+
+1 packages+deps+Hydra settings+app factory ✅ · 2 SQLAlchemy 2.0 models+session factory ⬜ · 3 Alembic baseline migration ⬜ · 4 repo protocols+SQL repos+in-memory fakes ⬜ · 5 Pydantic wire schemas ⬜ · 6 JobService (create/get/list/transition+dedup) ⬜ · 7 error mapping (PackerError→problem+json) ⬜ · 8 Celery app+broker config+queue routing ⬜ · 9 RedisProgress bridge ⬜ · 10 run_engine_job wrapper+4 one-liner tasks ⬜ · 11 FilesystemArtifactStore+composition DI root ⬜ · 12 submit routers (/pack /detect /extract /scan) ⬜ · 13 read routers (/jobs /models /artifacts /reports) ⬜ · 14 WebSocket hub + WS /ws/jobs/{id} ⬜ · 15 integration+API-E2E suites (testcontainers) ⬜
 
 ## Phase 0 — Foundations tasks
 
