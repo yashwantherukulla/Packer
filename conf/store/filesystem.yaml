@@ -1,0 +1,3 @@
+name: filesystem
+params:
+  root: ${oc.env:PACKER_STORE_ROOT,./outputs/store}

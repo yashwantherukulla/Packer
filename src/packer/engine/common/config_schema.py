@@ -81,12 +81,44 @@ class ExtractCfg:
     sandbox_runner: str = "docker"  # SANDBOX_REGISTRY name for assemble_ports
 
 
+@dataclass
+class ApiCfg:
+    host: str = "0.0.0.0"
+    port: int = 8000
+    cors_origins: list[str] = field(default_factory=lambda: ["http://localhost:5173"])
+    dedup: bool = False  # idempotency by input hash (config-gated, spec §4)
+
+
+@dataclass
+class DbCfg:
+    dsn: str = "${oc.env:PACKER_DB_DSN,postgresql+psycopg://packer:packer@localhost:5432/packer}"
+    pool_size: int = 5
+
+
+@dataclass
+class BrokerCfg:
+    url: str = "${oc.env:PACKER_REDIS_URL,redis://localhost:6379/0}"
+    result_backend: str = "${oc.env:PACKER_REDIS_URL,redis://localhost:6379/1}"
+    progress_prefix: str = "progress:"
+    eager: bool = False  # task_always_eager for in-process integration/E2E runs
+
+
+@dataclass
+class LoggingCfg:
+    level: str = "INFO"
+    json: bool = False
+
+
 def register_configs() -> None:
     cs = ConfigStore.instance()
     cs.store(group="engine/pack", name="tiny_decoder", node=TinyDecoderCfg)
     cs.store(group="engine/sandbox", name="docker", node=SandboxCfg)
     cs.store(group="engine/detect", name="ensemble", node=DetectCfg)
     cs.store(group="engine/extract", name="default", node=ExtractCfg)
+    cs.store(group="api", name="service", node=ApiCfg)
+    cs.store(group="db", name="postgres", node=DbCfg)
+    cs.store(group="broker", name="redis", node=BrokerCfg)
+    cs.store(group="logging", name="default", node=LoggingCfg)
     # ...additional groups as phases add them.
 
 

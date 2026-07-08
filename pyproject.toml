@@ -15,6 +15,14 @@ dependencies = [
   "torch>=2.13.0",
   "tokenizers>=0.23.1",
   "docker>=7.1.0",
+  "fastapi>=0.139.0",
+  "uvicorn[standard]>=0.51.0",
+  "celery>=5.6.3",
+  "redis>=8.0.1",
+  "sqlalchemy>=2.0.51",
+  "alembic>=1.18.5",
+  "psycopg[binary]>=3.3.4",
+  "python-multipart>=0.0.32",
 ]
 
 [dependency-groups]
@@ -26,6 +34,9 @@ dev = [
   "hypothesis>=6.100",
   "import-linter>=2.0",
   "pre-commit>=3.7",
+  "pytest-asyncio>=1.4.0",
+  "httpx>=0.28.1",
+  "testcontainers>=4.14.2",
 ]
 
 [build-system]
@@ -51,6 +62,12 @@ ignore = ["E501"]
 [tool.ruff.lint.per-file-ignores]
 "tests/**" = ["S101"]
 
+# FastAPI's dependency-injection defaults (`= Depends(...)`) are the documented
+# idiom, not a mutable-default bug; treat them as immutable calls so B008 stays
+# clean without silencing it project-wide.
+[tool.ruff.lint.flake8-bugbear]
+extend-immutable-calls = ["fastapi.Depends"]
+
 [tool.ruff.format]
 quote-style = "double"
 
@@ -66,6 +83,19 @@ warn_unused_ignores = true
 [[tool.mypy.overrides]]
 module = ["docker", "docker.*", "yara", "transformers", "transformers.*"]
 ignore_missing_imports = true
+
+# Celery ships no py.typed marker / stubs; the worker layer treats it as Any
+# (the engine never imports it — enforced by the framework-agnostic contract).
+[[tool.mypy.overrides]]
+module = ["celery", "celery.*"]
+ignore_missing_imports = true
+
+# Celery's @app.task is an untyped decorator (no stubs), which under mypy strict
+# would flag the four task functions as "untyped-decorator". Their bodies stay
+# fully typed; disable only that one sub-check for the tasks module.
+[[tool.mypy.overrides]]
+module = ["packer.workers.tasks"]
+disallow_untyped_decorators = false
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -112,9 +142,16 @@ forbidden_modules = ["torch"]
 name = "clean layering"          # high -> low; higher layers may import lower ones
 type = "layers"
 layers = [
+  "packer.api",
   "packer.engine.sandbox",
   "packer.engine.extract",
   "packer.engine.pack | packer.engine.detect",
   "packer.engine.models | packer.engine.artifacts | packer.engine.report",
   "packer.engine.common",
 ]
+# The ONE sanctioned intra-engine edge (mirrors the docker adapter carve-out on
+# the forbidden contract): the filesystem ArtifactStore adapter lives under
+# common/stores/ (the SYSTEM-DESIGN §8 storage-backend playbook) and reuses the
+# canonical .pak on-disk layout via PakWriter/PakReader rather than duplicating
+# it. Stdlib + safetensors only, so the engine stays framework-agnostic.
+ignore_imports = ["packer.engine.common.stores.filesystem -> packer.engine.artifacts.pak"]
