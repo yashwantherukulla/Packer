@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 2 — Detector
 
+### `docs: mark Phase 2 complete`
+- **Phase 2 done.** All 12 plan tasks landed across 13 commits on `phase-2-detector` (Tasks 10/11 executed in dependency order 11→10). Five inference-free weight signals + ensemble + calibration + `Detector.detect` + the shared `engine/report/` kernel; no-inference enforced three ways (structural `WeightAccessor`, import-linter torch-forbidden, behavioral gate). **93 unit tests, mypy-strict clean (45 files), 3 import-linter contracts kept, ruff clean.**
+- Branch merged into `main` with `--no-ff`.
+- **Next:** Phase 3 (Extractor + Sandbox) — exact + blind extraction (reusing Phase-1 `Unpacker`), Docker sandbox runner + containment gate, five scanners, risk scorer, `ScanPipeline`.
+
 ### `test(detect): add behavioral no-inference gate + enforce contracts (Phase 2 wrap-up)`
 - **Task 12.** Added the behavioral no-inference gate (`test_no_inference_gate.py`): a fake model whose `forward`/`generate` raise; `Detector.detect` still returns a 5-section detect `Report`, proving detection never touches the forward path. Added the import-linter **"detect runs no inference"** contract and extended the layering to `{pack|detect} > {models|artifacts|report} > common`.
 - Deviations / fixes:
