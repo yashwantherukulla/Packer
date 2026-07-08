@@ -7,6 +7,12 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 5 — Web UI
 
+### `feat(ui): add WebSocket job-progress client with reconnect backoff`
+- **Task 4.** Added `src/lib/ws.ts` — `createJobProgressSocket(jobId, handlers, opts) → { close }`: opens `ws(s)://<host>/ws/jobs/{id}`, parses each frame as the (hand-authored) `ProgressEvent`, reconnects with exponential backoff (`baseDelay * 2 ** retries`) up to `maxRetries`, and reports `onOpen`/`onClose(willReconnect)` so the hook can flip to polling. Timing + `url()` are injectable for deterministic fake-timer tests; caller `close()` suppresses reconnect.
+- Deviations + why:
+  - Removed an unused `const sock = MockWS.last!` in the "caller close() suppresses reconnect" test — it was dead and tripped strict `noUnusedLocals`/eslint `no-unused-vars`. The assertion (`MockWS.last` unchanged after `close()` + timer advance) is unchanged.
+- **Verified:** from `frontend/` — `npm run test -- --run src/lib/ws.test.ts` → 1 file / 2 tests passed (frame parse + reconnect on unexpected close; caller `close()` suppresses reconnect). `npm run typecheck` clean; `npm run lint` → 0 errors.
+
 ### `feat(ui): add verdict/risk color scale + byte/pct formatters`
 - **Task 3.** Added `src/lib/verdict.ts` — the single accessible tone scale: `verdictTone` (detect `MEMORIZED-CODE-LIKELY|INCONCLUSIVE|UNLIKELY` → `danger|warn|ok`), `riskTone` (scan `malicious|suspicious|benign`), `severityTone` (`critical|high|medium|low`), and `toneClasses: Record<Tone, string>` (light + `dark:` Tailwind classes per tone). Added `src/lib/format.ts` — `formatBytes` (unit-scaling), `formatPct` (fraction → rounded %), `formatRatio` (`×`-suffixed). Both are framework-agnostic, no dependencies.
 - Deviations: none — implemented verbatim from the plan.
