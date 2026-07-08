@@ -5,6 +5,14 @@ changed / was added, and how it was verified. Newest at the top.
 
 ---
 
+## Phase 2 — Detector
+
+### `feat(detect): add SignalResult value object + spectral/rank numerics helpers`
+- **Task 1.** Scaffolded `engine/detect/`: `SignalResult{name, score, confidence, evidence}` frozen value object and pure numerics helpers (`singular_values`, `frobenius_norm`, `spectral_norm`, `stable_rank`, `effective_rank`, `mp_upper_edge`, `estimate_sigma`, `count_outlier_singular_values`, `hill_alpha`) — all numpy, no torch.
+- Deviations from plan snippet: typed matrices as `NDArray[Any]` (mypy-strict); replaced ambiguous Unicode (`×`,`–`) in docstrings (ruff RUF002).
+- **Numerics fix:** the plan's median-based `estimate_sigma` under-read σ (0.845 vs true 1.0), pushing the MP edge below the bulk max → false outliers on random Gaussians. Replaced with the Frobenius estimate `σ = ‖W‖_F/√(nm)` (RMS of entries), robust to a few spikes. Verified across 10 seeds: **0 false positives on random matrices, 0 spike misses**.
+- **Verified:** `pytest tests/unit/detect/test_numerics.py` → 5 passed; mypy clean; ruff clean.
+
 ## Phase 1 — Packer
 
 ### `docs: mark Phase 1 complete`
