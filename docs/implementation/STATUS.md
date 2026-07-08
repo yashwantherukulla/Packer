@@ -14,7 +14,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started
 | 1 | Packer (tiny decoder, trainer, lossless pack) | ✅ |
 | 2 | Detector (inference-free weight signals) | 🚧 |
 
-**Phase 2 tasks** ([plan](../plans/2026-07-07-phase-2-detector.md)): 1 numerics ✅ · 2 spectral ✅ · 3 weight-norm ✅ · 4 embedding ✅ · 5 rank ✅ · 6 metadata+discovery ✅ · 7 report model ✅ · 8 report builders ✅ · 9 verdict/ensemble/calib/config ✅ · 10 calibrator+evaluate ✅ · 11 Detector runner ✅ · 12 no-inference gate + wrap-up ⬜
+**Phase 2 tasks** ([plan](../plans/2026-07-07-phase-2-detector.md)): 1 numerics ✅ · 2 spectral ✅ · 3 weight-norm ✅ · 4 embedding ✅ · 5 rank ✅ · 6 metadata+discovery ✅ · 7 report model ✅ · 8 report builders ✅ · 9 verdict/ensemble/calib/config ✅ · 10 calibrator+evaluate ✅ · 11 Detector runner ✅ · 12 no-inference gate + wrap-up ✅
 | 3 | Extractor + Sandbox | ⬜ |
 | 4 | API (FastAPI + Celery + Postgres) | ⬜ |
 | 5 | Web UI (React SPA) | ⬜ |

@@ -172,7 +172,9 @@ ignore_imports = ["packer.engine.sandbox.adapters.docker -> docker"]
 name = "detect runs no inference"
 type = "forbidden"
 source_modules = ["packer.engine.detect"]
-forbidden_modules = ["torch.nn.functional"]   # + a behavioral test asserts forward/generate is never called
+# import-linter can't forbid an external *subpackage*; detect is pure numpy/scipy, so
+# forbid all of torch — a stronger guarantee than the nn.functional note.
+forbidden_modules = ["torch"]   # + a behavioral test asserts forward/generate is never called
 
 [[tool.importlinter.contracts]]
 name = "clean layering"          # high -> low; higher layers may import lower ones

@@ -15,5 +15,8 @@ def test_modelref_parse_path():
 
 
 def test_registries_exist_and_are_named():
-    assert registries.SIGNAL_REGISTRY.names() == []
-    assert registries.SCANNER_REGISTRY.names() == []
+    # `.names()` returns a sorted list; contents depend on which plugin modules have
+    # been imported this session (signals self-register on import), so assert shape,
+    # not emptiness.
+    assert isinstance(registries.SIGNAL_REGISTRY.names(), list)
+    assert isinstance(registries.SCANNER_REGISTRY.names(), list)

@@ -7,6 +7,15 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 2 — Detector
 
+### `test(detect): add behavioral no-inference gate + enforce contracts (Phase 2 wrap-up)`
+- **Task 12.** Added the behavioral no-inference gate (`test_no_inference_gate.py`): a fake model whose `forward`/`generate` raise; `Detector.detect` still returns a 5-section detect `Report`, proving detection never touches the forward path. Added the import-linter **"detect runs no inference"** contract and extended the layering to `{pack|detect} > {models|artifacts|report} > common`.
+- Deviations / fixes:
+  - import-linter can't forbid an external *subpackage* (`torch.nn.functional`) → forbade all of `torch` in `detect` (stronger: detect is torch-free). Synced DEVELOPMENT.md §3.1.
+  - **pytest `--import-mode=importlib`**: `test_config.py` existed in both `common/` and `detect/`; the default prepend mode requires unique basenames. importlib mode identifies test modules by path — needed as subsystems multiply.
+  - Fixed the Phase-0 `test_registries_exist_and_are_named` (asserted empty registries) — signals now self-register globally, so it asserts `.names()` shape, not emptiness.
+  - Updated the `ports.py` growth-map doc to reflect that torch/subsystem-referencing ports live in their subsystems, not the kernel.
+- **Verified:** **full `tests/unit` → 93 passed**; mypy clean (45 files); import-linter **3 contracts kept**; ruff check + format clean.
+
 ### `feat(detect): add Calibrator fit/calibrate + evaluate harness`
 - **Task 10.** Extended `calibration.py`: `Calibrator.fit(labeled_scores)` (deterministic per-signal Fisher weighting + threshold midpoints), `Calibrator.calibrate(fixtures, *, loader)` (loads each fixture weights-only, runs signals, then fits — lazy-imports `run_signals` to avoid the runner↔calibration cycle), and `evaluate(labeled_scores, params) -> Metrics` (measured accuracy/precision/recall + memorized-vs-control separation). Added an **integration-marked** fixture test that **skips** when Phase-1 fixtures are absent.
 - **Verified:** `pytest tests/unit/detect/test_calibration.py` → 2 passed (Fisher up-weights the separating signal; accuracy=1.0, separation>0 on synthetic rows); integration test skips cleanly; mypy clean; ruff clean.

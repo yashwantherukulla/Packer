@@ -57,7 +57,9 @@ warn_unused_ignores = true
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]  # make the repo-root `scripts` package importable in tests
-addopts = "-q --strict-markers"
+# importlib import-mode: test modules are identified by path, so the same basename
+# (e.g. test_config.py) can appear in multiple subsystem test dirs without collision.
+addopts = "-q --strict-markers --import-mode=importlib"
 markers = [
   "unit: fast, no external services",
   "integration: needs services",
@@ -83,9 +85,19 @@ source_modules = ["packer.engine"]
 forbidden_modules = ["packer.api", "packer.workers", "redis", "sqlalchemy", "fastapi", "celery"]
 
 [[tool.importlinter.contracts]]
+name = "detect runs no inference"
+# import-linter can't forbid an external *subpackage* (torch.nn.functional), and
+# detect is pure numpy/scipy anyway — so forbid all of torch: a stronger guarantee
+# (detect is torch-free, hence inference-free) than the spec's nn.functional note.
+type = "forbidden"
+source_modules = ["packer.engine.detect"]
+forbidden_modules = ["torch"]
+
+[[tool.importlinter.contracts]]
 name = "clean layering"          # high -> low; higher layers may import lower ones
 type = "layers"
 layers = [
-  "packer.engine.models | packer.engine.artifacts",
+  "packer.engine.pack | packer.engine.detect",
+  "packer.engine.models | packer.engine.artifacts | packer.engine.report",
   "packer.engine.common",
 ]
