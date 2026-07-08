@@ -34,7 +34,7 @@ Plan: [`docs/plans/2026-07-07-phase-0-foundations.md`](../plans/2026-07-07-phase
 | 7 | Value-object types + ports + registry instances | ✅ (ports incremental — see CHANGELOG) |
 | 8 | Structured logging + correlation id | ✅ |
 | 9 | import-linter contracts (Dependency Rule) | ⬜ |
-| 10 | Hydra config tree + structured configs + assembler | ⬜ |
+| 10 | Hydra config tree + structured configs + assembler | ✅ |
 | 11 | Safetensors loader + `WeightAccessor` | ✅ |
 | 12 | `.pak` artifact format (manifest, codec, reader/writer) | ✅ |
 

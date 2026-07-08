@@ -9,6 +9,14 @@ changed / was added, and how it was verified. Newest at the top.
 
 > **Task order note:** remaining Phase-0 tasks are executed **11 → 12 → 10 → 9** (models, artifacts, config/assembler, import-linter). The import-linter layering contract references `packer.engine.models`/`artifacts`, so it must land *after* those packages exist; models & artifacts are independent of config/assembler.
 
+### `feat(common): add Hydra config tree, structured configs, assembler skeleton`
+- **Task 10.** Added:
+  - `conf/config.yaml` — root Hydra config; `defaults` select `engine/pack: tiny_decoder` + `engine/sandbox: docker` (resolved from the ConfigStore); `run_dir` via `${oc.env:...}` interpolation.
+  - `config_schema.py` — structured `@dataclass` configs `TinyDecoderCfg`, `SandboxCfg`; `register_configs()` stores them in the ConfigStore; `compose_config(overrides=...)` composes the root config via `initialize_config_dir`.
+  - `assembler.py` — `EnginePorts` frozen dataclass (`store`/`sandbox`/`loader`) + `assemble_ports(cfg)` DI root (registry-driven; returns null ports until adapters register in later phases).
+- Deviations from plan snippet: (a) `_CONF_DIR` uses `parents[4]` not `parents[3]` — `conf/` is at the repo root under the root src-layout; (b) test override syntax is `engine.pack.epochs=999` (dotted value override), not the plan's `engine/pack.epochs=999`; (c) the group option YAMLs (`tiny_decoder.yaml`/`docker.yaml`) are omitted — the ConfigStore-registered structured configs supply the defaults (files added when a phase needs file-level overrides); (d) dropped the unused `field` import.
+- **Verified:** `pytest tests/unit/common/test_config.py` → 4 passed; ruff clean; `mypy src` clean.
+
 ### `chore: run ruff/mypy as local uv hooks to eliminate version drift`
 - Converted ruff, ruff-format, and mypy pre-commit hooks from pinned mirror repos (`ruff-pre-commit@v0.5.0`, `mirrors-mypy@v1.10.0`) to **local `uv run` hooks**, so the hook uses the exact `uv.lock` versions (ruff 0.15.20, mypy 2.2.0) — identical to CI.
 - **Root cause:** the pinned ruff v0.5.0 didn't enforce `RUF022` (`__all__` sort) the way the uv-locked ruff 0.15.20 does, so `artifacts/codec.py` passed the hook in Task 12 but failed `uv run ruff check` afterward. Fixed `codec.py`'s `__all__` order (`["ResidualCodec", "Residuals"]`).
