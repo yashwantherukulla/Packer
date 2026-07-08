@@ -35,7 +35,7 @@ Plan: [`docs/plans/2026-07-07-phase-0-foundations.md`](../plans/2026-07-07-phase
 | 8 | Structured logging + correlation id | ✅ |
 | 9 | import-linter contracts (Dependency Rule) | ⬜ |
 | 10 | Hydra config tree + structured configs + assembler | ⬜ |
-| 11 | Safetensors loader + `WeightAccessor` | ⬜ |
+| 11 | Safetensors loader + `WeightAccessor` | ✅ |
 | 12 | `.pak` artifact format (manifest, codec, reader/writer) | ⬜ |
 
 ### Phase 0 Definition of Done

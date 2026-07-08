@@ -7,6 +7,15 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 0 — Foundations
 
+> **Task order note:** remaining Phase-0 tasks are executed **11 → 12 → 10 → 9** (models, artifacts, config/assembler, import-linter). The import-linter layering contract references `packer.engine.models`/`artifacts`, so it must land *after* those packages exist; models & artifacts are independent of config/assembler.
+
+### `feat(models): safetensors-first loader + role-based WeightAccessor`
+- **Task 11.** Added `src/packer/engine/models/`:
+  - `loader.py` — `LoadedModel` frozen value object (`tensors`, `config`, `source`, `format`) + `HFModelLoader` (safetensors-first; `.bin`/`.pkl`/`.pt`/`.pth`/`.ckpt` without `allow_pickle=True` raises `UnsafeModelError`; missing safetensors raises `LoadError`). HF-hub download deferred to Phase 2.
+  - `accessor.py` — `WeightAccessor`: role-based, tensor-only view (`attention_matrices`, `mlp_matrices`, `embedding`, `unembedding` with tied-weight fallback, `config`). No `forward`/`generate` — the structural half of the no-inference guarantee.
+- Deviation from plan snippet: typed tensor maps as `dict[str, NDArray[Any]]` and configs as `dict[str, Any]` (mypy-strict rejects bare `np.ndarray`/`dict`). No new port added — `ModelLoader` port is deferred to Phase 2 (first consumer) to keep the Dependency Rule strict (a `common` port referencing the `models`-owned `LoadedModel` would invert the layering).
+- **Verified:** `pytest tests/unit/models` → 4 passed; ruff clean; `mypy src` clean.
+
 ### `feat(common): add structured logging with correlation-id context`
 - **Task 8.** Added `src/packer/engine/common/logging.py`: `get_logger(name)` (attaches a correlation-id filter once), `bind_correlation_id(cid)` / `current_correlation_id()` backed by a `ContextVar`, and `_CorrelationFilter` which stamps every record with the current id (or `-`).
 - **Verified:** `pytest tests/unit/common/test_logging.py` → 2 passed; ruff clean; `mypy src` clean.
