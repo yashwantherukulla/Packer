@@ -5,6 +5,80 @@ changed / was added, and how it was verified. Newest at the top.
 
 ---
 
+## Phase 1 — Packer
+
+### `docs: mark Phase 1 complete`
+- **Phase 1 done.** All 12 plan tasks (+1 kernel refactor) landed across 14 commits on `phase-1-packer`. Definition of Done met: `pack → unpack` byte-identical over arbitrary bytes + `epochs=1` (residuals independent of convergence); in-process verify gate raises `PackError` before writing; honest manifest metrics (`artifact_bytes > gzip_bytes`); ≥3 memorized + ≥2 control fixtures; same-seed determinism; all four plugins self-register. **68 unit tests, mypy-strict clean (29 files), 2 import-linter contracts kept, ruff clean.**
+- Branch merged into `main` with `--no-ff`.
+- **Next:** Phase 2 (Detector) — five inference-free weight signals, ensemble + calibration, the shared `engine/report/` model, `Detector.detect`, and the no-inference gate.
+
+### `feat(pack): add fixture generator (3 memorized paks + 2 control models)`
+- **Task 12.** Added `scripts/make_fixtures.py`: `make_fixtures(out_dir)` writes 3 memorized `.pak` (from distinct synthetic repos) + 2 controls (random-init and normal-trained-on-noise, as safetensors dirs loadable via `HFModelLoader`) — the negatives Phase 2 calibrates against and Phase 3 extracts. Deterministic + tiny; not committed (weights stay out of git). Added `scripts/__init__.py` and `pythonpath = ["."]` to pytest config so `scripts` is importable in tests.
+- **Verified:** `pytest tests/unit/pack/test_fixtures.py` → 1 passed (3 memorized paks round-trip, 2 controls load as safetensors); ruff clean.
+
+### `test(pack): add byte-exact round-trip gates (arbitrary bytes, epochs=1, determinism)`
+- **Task 11.** Added `test_roundtrip.py` — the CI correctness gates: (1) Hypothesis `pack → unpack` byte-identical over 25 arbitrary-byte examples (0–200 bytes); (2) byte-identical with `epochs=1` (residual mechanism proven independent of convergence); (3) two same-seed runs produce byte-identical `model.safetensors` / `residuals.bin` / `tokenizer.json`.
+- **Verified:** `pytest tests/unit/pack/test_roundtrip.py` → 3 passed; ruff clean.
+
+### `feat(pack): add Packer orchestrator with byte-exact verify gate and honest metrics`
+- **Task 10.** Added `packer.py`: `Packer.pack(root, cfg, ports, progress) -> str` — serialize → tokenize → (reject if tokens > `context_len`) → build → train → capture residuals → **verify byte-exact round-trip in-process (fail-fast `PackError`)** → build manifest with honest metrics (`original`/`gzip`/`model`/`artifact` bytes, residual ratio, `lossless`) → persist (`ports.store.put_pak` or `PakWriter` under `cfg.out_dir`). Exported from `pack/__init__.py`.
+- Deviations from plan snippet: typed `cfg` as `DictConfig` (eliminates ~15 `# type: ignore[attr-defined]` — OmegaConf attribute access is already `Any`) and cast the `Registry[object]` arch/decode lookups; widened `InferenceModel`'s `tokenizer` param to the `Tokenizer` port (it only calls `.decode`), so the registry-created tokenizer type-checks.
+- **Test fix:** `test_pack_rejects_oversized_corpus` used `b"a"*5000`, which byte-BPE merges to <64 tokens (never trips the gate); replaced with ~6400 high-entropy (sha256-chained) bytes so the oversize gate is genuinely exercised.
+- **Verified:** `pytest tests/unit/pack/test_packer.py` → 4 passed (pack↔unpack byte-exact + final `pct==1.0`; honest metrics with `artifact_bytes > gzip_bytes`; verify-gate raises on dropped residuals; oversize raises). Full `tests/unit/pack` → 35 passed; mypy clean; ruff clean; import-linter kept.
+
+### `feat(pack): add standalone unpack()/unpack_bundle() reused by Phase 3`
+- **Task 9.** Added `unpacker.py`: `unpack(pak_path)` and `unpack_bundle(bundle)` — read a `.pak`, rebuild the `TinyDecoder` from tensors + `ModelInfo`, wrap in `InferenceModel`, decode the residual blob via the registry-selected codec/decode strategy, and split frames → `{posix_relpath: bytes}`. Exported from `pack/__init__.py`; **reused verbatim by Phase 3's exact extractor**.
+- Deviations from plan snippet: guarded the `int | None` manifest model fields with a single narrowing check (mypy-strict) before rebuilding; `cast(DecodeStrategy, DECODE_REGISTRY.create(...))` at the `Registry[object]` boundary; tensor param typed `dict[str, NDArray[Any]]`.
+- **Verified:** `pytest tests/unit/pack/test_unpacker.py` → 2 passed (hand-built bundle + on-disk `.pak` both recover files byte-exact); mypy clean; ruff clean.
+
+### `feat(pack): add InferenceModel, TeacherForcedGreedy decode, and shared Unpacker`
+- **Task 8.** Added `decode.py` (the decode path **shared verbatim with Phase 3**):
+  - `InferenceModel(model, tokenizer, bos_token_id)` — forward-only wrapper: `teacher_forced_preds`, `next_token`, `detokenize`.
+  - `TeacherForcedGreedy` `@DECODE_REGISTRY.register("teacher-forced-greedy")` — deterministic self-correcting greedy decode (argmax, override from residuals).
+  - `Unpacker(decode, codec)` — `reconstruct` / `reconstruct_blob`.
+- Deviation from plan snippet: the `DecodeStrategy` Protocol is defined **in `decode.py`** (not imported from `common.ports`) because it references `InferenceModel`; concretized `.tolist()` returns for mypy-strict.
+- **Verified:** `pytest tests/unit/pack/test_decode.py` → 4 passed — incl. **byte-exact reconstruction with an untrained model** (residual-guaranteed losslessness, ADR-006); mypy clean; ruff clean.
+
+### `feat(pack): add DeltaVarintCodec + teacher-forced ResidualCapturer`
+- **Task 7.** Added `residuals.py`: `DeltaVarintCodec` `@CODEC_REGISTRY.register("delta-varint-v1")` (sorts, delta-encodes positions, varints token ids; `decode(encode(r)) == r`) and `ResidualCapturer.capture(model, tokens)` → `[(pos, true_token)]` where teacher-forced argmax disagrees. Registered via `pack/__init__.py`.
+- Deviation from plan snippet: `capture` types `model` as a local `_TeacherForced` Protocol (just `teacher_forced_preds`) instead of forward-referencing `InferenceModel` — avoids the residuals↔decode import cycle and keeps Task-7-before-Task-8 ordering clean.
+- **Verified:** `pytest tests/unit/pack/test_residuals.py` → 5 passed (Hypothesis codec round-trip over 200 examples, mismatch capture); mypy clean; ruff clean.
+
+### `feat(pack): add OverfitTrainer with determinism + progress reporting`
+- **Task 6.** Added `trainer.py`: `OverfitTrainer.train(model, tokens, cfg, progress)` — AdamW teacher-forced overfit loop (no dropout), emits `step="train"` progress with epoch/loss/token-accuracy, no-ops on empty tokens. Module helpers `apply_determinism(seed, deterministic)` (seeds random/numpy/torch + deterministic flags) and `resolve_device(name)` (auto→cuda|cpu), reused by `Packer`. Added shared `tests/unit/pack/conftest.py` (`cfg_factory`).
+- Deviations: `# type: ignore[no-untyped-call]` on `loss.backward()` (untyped in torch stubs); ruff RUF005 (`[bos, *tokens[:-1]]`) and B905 (`zip(..., strict=True)`) applied.
+- **Verified:** `pytest tests/unit/pack/test_trainer.py` → 4 passed (loss decreases + progress emitted, same-seed determinism, empty-corpus no-op); mypy clean; ruff clean.
+
+### `feat(pack): add from-scratch TinyDecoder + tiny-decoder architecture builder`
+- **Task 5.** Added `arch.py`: `TinyDecoder(nn.Module)` — from-scratch causal decoder (token+positional embeddings, pre-norm blocks with `scaled_dot_product_attention(is_causal=True)`, GELU MLP, LM head) — and `TinyDecoderArch` `@ARCH_REGISTRY.register("tiny-decoder")` building it from config. Registered via `pack/__init__.py`.
+- Added a `ModelArchitecture` Protocol **in `pack`** (not `common`): it references `torch.nn.Module`, so keeping it out of the kernel preserves the framework-light Dependency Rule (documented deviation from SYSTEM-DESIGN §3.2's placement).
+- Deviations: `# noqa: N812` on the idiomatic `import torch.nn.functional as F`; `# type: ignore[attr-defined]` on OmegaConf attribute reads (per plan).
+- **Verified:** `pytest tests/unit/pack/test_arch.py` → 3 passed (registered builder, forward shape `[1,8,64]`, eval determinism); mypy clean; ruff clean.
+
+### `feat(pack): add byte-level BPE tokenizer (byte-bpe) with lossless coverage`
+- **Task 4.** Added `tokenizer.py`: `ByteBPETokenizer` `@TOKENIZER_REGISTRY.register("byte-bpe")` — HF `tokenizers` BPE over a latin-1 byte↔char bijection with the full 256-symbol initial alphabet, so `decode(encode(x)) == x` for *any* bytes. Implements the enriched `Tokenizer` port + `from_bytes`/`_require`. Registered via `pack/__init__.py`.
+- Deviations from plan snippet: concretized return values (`list(...)`, `int(...)`, typed `text: str`) to satisfy mypy-strict `warn_return_any`; `# type: ignore[no-untyped-call]` on `BpeTrainer` (untyped in the `tokenizers` stubs); tightened the pre-train test to `pytest.raises(PackError)` (ruff B017).
+- **Verified:** `pytest tests/unit/pack/test_tokenizer.py` → 6 passed (lossless on training text + arbitrary 256-byte binary, serialization round-trip); mypy clean; ruff clean.
+
+### `refactor(common): preserve concrete type in Registry.register; enrich Tokenizer port`
+- Prep for the Phase-1 plugins (kernel change discovered when first using the decorator):
+  - `Registry.register` is now generic in the **decorated** class (`_C`), not the registry's `T`. Before, `@REG.register(...) class Foo` collapsed `Foo`'s type to `type[T]`, erasing its concrete API — which would have broken `decode.py`/`unpacker.py` calling `ByteBPETokenizer`'s non-port methods (`bos_id`, `from_bytes`) in mypy-strict `src`. Now the decorated symbol keeps its concrete type; `create` still returns `T`.
+  - `Tokenizer` port gained `vocab_size()`, `bos_id()`, `to_bytes()` — the methods `Packer` needs from any tokenizer plugin, so it stays plugin-agnostic (uses `TOKENIZER_REGISTRY.create(...)` without casting to the concrete class).
+- **Verified:** `pytest tests/unit/common` green; mypy clean; import-linter kept.
+
+### `feat(pack): add reversible MarkerCorpusSerializer + SerializedCorpus`
+- **Task 3.** Added `corpus.py`: `SerializedCorpus` frozen value object (`bytes`, `file_map` of `(posix_relpath, start, end)`, `.n_files`/`.original_bytes`) and `MarkerCorpusSerializer` — deterministic (sorted posix paths), self-delimiting magic-framed serialize + fully reversible deserialize; corrupt framing raises `PackError`.
+- **Verified:** `pytest tests/unit/pack/test_corpus.py` → 4 passed (nested/binary/empty/unicode-path files, determinism, span integrity, corruption); mypy clean.
+
+### `feat(pack): extend TinyDecoderCfg with plugin-name + training fields`
+- **Task 2.** Extended `TinyDecoderCfg` with backward-compatible defaulted fields: plugin selectors (`arch`, `tokenizer`, `decode`, `codec`) + training/persistence knobs (`weight_decay`, `seed`, `bos_token_id`, `out_dir`). Compose + override verified under `cfg.engine.pack`.
+- Deviation from plan: the `conf/engine/pack/tiny_decoder.yaml` group file is omitted (as in Phase 0 Task 10, the ConfigStore-registered structured config supplies defaults); test uses the corrected dotted override `engine.pack.seed=7`.
+- **Verified:** `pytest tests/unit/common/test_config_pack.py` → 2 passed; mypy clean.
+
+### `feat(pack): scaffold pack package, add torch+tokenizers, add varint util`
+- **Task 1.** Added runtime deps `torch>=2.13.0` (CPU build) and `tokenizers>=0.23.1` via `uv add`. Created the `packer.engine.pack` package (empty `__init__.py`; plugin-registration imports appended per task) and `varint.py` (`_write_uvarint`/`_read_uvarint` — unsigned LEB128, shared by corpus + residual codec).
+- **Verified:** `pytest tests/unit/pack/test_varint.py` → 3 passed; mypy clean; import-linter kept (pack imports only stdlib so far).
+
 ## Phase 0 — Foundations
 
 ### `docs: mark Phase 0 complete`

@@ -1,7 +1,7 @@
 # Status
 
-**Current branch:** `main` (Phase 0 merged)
-**Current phase:** Phase 0 complete — next is Phase 1 (Packer)
+**Current branch:** `main` (Phase 1 merged)
+**Current phase:** Phase 1 complete — next is Phase 2 (Detector)
 **Last updated:** 2026-07-08
 
 Legend: ✅ done · 🚧 in progress · ⬜ not started
@@ -11,8 +11,8 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started
 | Phase | Name | State |
 |-------|------|-------|
 | 0 | Foundations (toolchain + shared kernel + `.pak` format) | ✅ |
-| 1 | Packer (tiny decoder, trainer, lossless pack) | ⬜ |
-| 2 | Detector (inference-free weight signals) | ⬜ |
+| 1 | Packer (tiny decoder, trainer, lossless pack) | ✅ |
+| 2 | Detector (inference-free weight signals) | 🚧 |
 | 3 | Extractor + Sandbox | ⬜ |
 | 4 | API (FastAPI + Celery + Postgres) | ⬜ |
 | 5 | Web UI (React SPA) | ⬜ |
@@ -47,3 +47,22 @@ Plan: [`docs/plans/2026-07-07-phase-0-foundations.md`](../plans/2026-07-07-phase
 - ✅ `HFModelLoader.load` loads a safetensors fixture and refuses `.bin` by default (`test_loader.py`).
 - ✅ `PakBundle` round-trips through `PakWriter`/`PakReader` (`test_pak.py`).
 - ⏸ CI `quality` job — workflow is valid but not yet exercised (no git remote configured). Runs on first push.
+
+## Phase 1 — Packer tasks
+
+Plan: [`docs/plans/2026-07-07-phase-1-packer.md`](../plans/2026-07-07-phase-1-packer.md)
+
+| # | Task | State |
+|---|------|-------|
+| 1 | Runtime deps (torch, tokenizers) + pack scaffold + varint | ✅ |
+| 2 | Pack config extension (Phase-1 fields) | ✅ |
+| 3 | `MarkerCorpusSerializer` + `SerializedCorpus` | ✅ |
+| 4 | `ByteBPETokenizer` (`byte-bpe`) | ✅ |
+| 5 | `TinyDecoder` + `TinyDecoderArch` (`tiny-decoder`) | ✅ |
+| 6 | `OverfitTrainer` | ✅ |
+| 7 | `DeltaVarintCodec` + `ResidualCapturer` (`delta-varint-v1`) | ✅ |
+| 8 | `InferenceModel` + `TeacherForcedGreedy` + `Unpacker` | ✅ |
+| 9 | `unpack(pak_path)` / `unpack_bundle` | ✅ |
+| 10 | `Packer` orchestrator + verify gate + honest metrics | ✅ |
+| 11 | Property-based round-trip gates | ✅ |
+| 12 | Fixture generator (≥3 memorized + ≥2 controls) | ✅ |
