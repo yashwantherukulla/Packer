@@ -7,6 +7,14 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 1 — Packer
 
+### `feat(pack): add InferenceModel, TeacherForcedGreedy decode, and shared Unpacker`
+- **Task 8.** Added `decode.py` (the decode path **shared verbatim with Phase 3**):
+  - `InferenceModel(model, tokenizer, bos_token_id)` — forward-only wrapper: `teacher_forced_preds`, `next_token`, `detokenize`.
+  - `TeacherForcedGreedy` `@DECODE_REGISTRY.register("teacher-forced-greedy")` — deterministic self-correcting greedy decode (argmax, override from residuals).
+  - `Unpacker(decode, codec)` — `reconstruct` / `reconstruct_blob`.
+- Deviation from plan snippet: the `DecodeStrategy` Protocol is defined **in `decode.py`** (not imported from `common.ports`) because it references `InferenceModel`; concretized `.tolist()` returns for mypy-strict.
+- **Verified:** `pytest tests/unit/pack/test_decode.py` → 4 passed — incl. **byte-exact reconstruction with an untrained model** (residual-guaranteed losslessness, ADR-006); mypy clean; ruff clean.
+
 ### `feat(pack): add DeltaVarintCodec + teacher-forced ResidualCapturer`
 - **Task 7.** Added `residuals.py`: `DeltaVarintCodec` `@CODEC_REGISTRY.register("delta-varint-v1")` (sorts, delta-encodes positions, varints token ids; `decode(encode(r)) == r`) and `ResidualCapturer.capture(model, tokens)` → `[(pos, true_token)]` where teacher-forced argmax disagrees. Registered via `pack/__init__.py`.
 - Deviation from plan snippet: `capture` types `model` as a local `_TeacherForced` Protocol (just `teacher_forced_preds`) instead of forward-referencing `InferenceModel` — avoids the residuals↔decode import cycle and keeps Task-7-before-Task-8 ordering clean.
