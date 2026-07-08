@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 5 — Web UI
 
+### `feat(ui): add FindingsTable (severity sort) + BehaviorPanel (disagreement callout)`
+- **Task 10.** Added `src/components/FindingsTable.tsx` — `<FindingsTable findings />`, columns severity/rule/file/line/note; default sort severity-descending (rank critical>high>medium>low), header button (`data-testid="sort-severity"`) toggles direction; severity chip toned by `severityTone`. Added `src/components/BehaviorPanel.tsx` — `<BehaviorPanel behavior />`, syscalls / fs-writes / blocked-net lists plus a `role="alert"` `data-testid="disagreement"` static/dynamic disagreement callout when present.
+- Deviations: none — implemented verbatim from the plan (consumes the `Finding`/`Behavior` view models from Task 9).
+- **Verified:** from `frontend/` — `npm run test -- --run src/components/FindingsTable.test.tsx src/components/BehaviorPanel.test.tsx` → 2 files / 2 tests passed (default first row `high`, toggles to `low` on header click; behavior lists render `execve` and the disagreement alert). `npm run typecheck` clean; `npm run lint` → 0 errors.
+
 ### `feat(ui): add VerdictBadge + SignalBreakdown + report section view models`
 - **Task 9.** Added `src/lib/report-view.ts` — the sanctioned presentational view models over the opaque wire report body: `Verdict`, `ReportSection`, `ReportBody`, `SignalItem`, `Finding`, `Behavior`, a `toReportBody(res)` flattener, and `sectionsByType(body) → { signals, findings, behavior }`. Added `src/components/VerdictBadge.tsx` — `<VerdictBadge kind label score confidence />` toned by `verdictTone` (detect) / `riskTone` (scan) via `toneClasses`. Added `src/components/SignalBreakdown.tsx` — `<SignalBreakdown signals />`, one card per signal with score, confidence, and its evidence key/values.
 - Deviations + why:
