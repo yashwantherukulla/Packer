@@ -7,6 +7,10 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 2 — Detector
 
+### `feat(detect): add Calibrator fit/calibrate + evaluate harness`
+- **Task 10.** Extended `calibration.py`: `Calibrator.fit(labeled_scores)` (deterministic per-signal Fisher weighting + threshold midpoints), `Calibrator.calibrate(fixtures, *, loader)` (loads each fixture weights-only, runs signals, then fits — lazy-imports `run_signals` to avoid the runner↔calibration cycle), and `evaluate(labeled_scores, params) -> Metrics` (measured accuracy/precision/recall + memorized-vs-control separation). Added an **integration-marked** fixture test that **skips** when Phase-1 fixtures are absent.
+- **Verified:** `pytest tests/unit/detect/test_calibration.py` → 2 passed (Fisher up-weights the separating signal; accuracy=1.0, separation>0 on synthetic rows); integration test skips cleanly; mypy clean; ruff clean.
+
 ### `feat(detect): add Detector.detect runner + run_signals helper`
 - **Task 11** (done before Task 10 — the calibrator's `calibrate` imports `run_signals`). Added `detect/runner.py`: `Detector.detect(model_ref, cfg, ports) -> Report` — loads weights only → runs config-enabled signals via the registry → ensemble → `DetectReportBuilder`; falls back to `CalibrationParams.default()` when the version file is absent. Plus `run_signals(ref, *, loader, enabled)` reused by the calibrator. Structural `_Loader`/`_Ports`/`_DetectCfg`/`_Signal` Protocols keep `detect` decoupled from the loosely-typed `EnginePorts`/`DictConfig`.
 - Deviation from plan snippet: a `_Signal` Protocol + `cast` at the `Registry[object]` boundary (`SIGNAL_REGISTRY.create(n).analyze` isn't typed otherwise).

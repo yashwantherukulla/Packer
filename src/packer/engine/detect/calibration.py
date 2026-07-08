@@ -3,6 +3,16 @@ from __future__ import annotations
 import json
 from dataclasses import asdict, dataclass
 from pathlib import Path
+from typing import TYPE_CHECKING
+
+import numpy as np
+
+from packer.engine.detect.ensemble import Ensemble
+from packer.engine.detect.signals.base import SignalResult
+from packer.engine.detect.verdict import LABEL_LIKELY
+
+if TYPE_CHECKING:
+    from packer.engine.detect.runner import _Loader
 
 
 @dataclass(frozen=True)
@@ -68,3 +78,97 @@ class CalibrationStore:
     def save(self, params: CalibrationParams) -> None:
         self._root.mkdir(parents=True, exist_ok=True)
         (self._root / f"{params.version}.json").write_text(params.to_json())
+
+
+LabeledScores = list[tuple[list[SignalResult], bool]]
+
+
+def _score_for(scores: list[SignalResult], name: str) -> float | None:
+    for r in scores:
+        if r.name == name:
+            return r.score
+    return None
+
+
+def _fisher(pos: list[float], neg: list[float]) -> float:
+    if not pos or not neg:
+        return 1.0
+    p = np.asarray(pos, dtype=np.float64)
+    n = np.asarray(neg, dtype=np.float64)
+    var = float(p.var() + n.var() + 1e-6)
+    return float((p.mean() - n.mean()) ** 2 / var)
+
+
+def _combine(scores: list[SignalResult], weights: dict[str, float]) -> float:
+    num = den = 0.0
+    for r in scores:
+        w = weights.get(r.name, 1.0)
+        num += w * r.confidence * r.score
+        den += w * r.confidence
+    return num / den if den > 0 else 0.0
+
+
+class Calibrator:
+    def fit(self, labeled_scores: LabeledScores, cfg: object | None = None) -> CalibrationParams:
+        """Deterministic per-signal Fisher weighting + threshold midpoints. Pure — no IO."""
+        names = sorted({r.name for scores, _ in labeled_scores for r in scores})
+        raw: dict[str, float] = {}
+        for name in names:
+            pos = [
+                s for s in (_score_for(sc, name) for sc, y in labeled_scores if y) if s is not None
+            ]
+            neg = [
+                s
+                for s in (_score_for(sc, name) for sc, y in labeled_scores if not y)
+                if s is not None
+            ]
+            raw[name] = _fisher(pos, neg)
+        total = sum(raw.values()) or 1.0
+        weights = {k: v / total * len(raw) for k, v in raw.items()}
+
+        combos = [(_combine(sc, weights), y) for sc, y in labeled_scores]
+        pos_c = [c for c, y in combos if y]
+        neg_c = [c for c, y in combos if not y]
+        mid = (float(np.mean(pos_c)) + float(np.mean(neg_c))) / 2 if pos_c and neg_c else 0.5
+        likely = float(min(0.9, mid + 0.05))
+        unlikely = float(max(0.1, mid - 0.05))
+        return CalibrationParams("detect-v0", weights, likely, unlikely)
+
+    def calibrate(
+        self,
+        fixtures: list[LabeledModel],
+        cfg: object | None = None,
+        *,
+        loader: _Loader | None = None,
+    ) -> CalibrationParams:
+        """Load each fixture (weights only), run signals, then ``fit``. Assumes Phase-1
+        fixtures exist under tests/**/fixtures/ (see plan assumptions)."""
+        from packer.engine.detect.runner import run_signals
+
+        rows: LabeledScores = [(run_signals(m.ref, loader=loader), m.memorized) for m in fixtures]
+        return self.fit(rows, cfg)
+
+
+def evaluate(labeled_scores: LabeledScores, params: CalibrationParams) -> Metrics:
+    ens = Ensemble()
+    tp = fp = tn = fn = 0
+    pos_c: list[float] = []
+    neg_c: list[float] = []
+    for scores, y in labeled_scores:
+        verdict = ens.score(scores, params)
+        predicted = verdict.label == LABEL_LIKELY
+        (pos_c if y else neg_c).append(verdict.score)
+        if predicted and y:
+            tp += 1
+        elif predicted and not y:
+            fp += 1
+        elif not predicted and not y:
+            tn += 1
+        else:
+            fn += 1
+    n = tp + fp + tn + fn
+    accuracy = (tp + tn) / n if n else 0.0
+    precision = tp / (tp + fp) if (tp + fp) else 0.0
+    recall = tp / (tp + fn) if (tp + fn) else 0.0
+    separation = float(np.mean(pos_c)) - float(np.mean(neg_c)) if pos_c and neg_c else 0.0
+    return Metrics(n, accuracy, precision, recall, separation)
