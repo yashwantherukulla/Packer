@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 
 from hydra import compose, initialize_config_dir
@@ -41,10 +41,19 @@ class SandboxCfg:
     network: str = "none"
 
 
+@dataclass
+class DetectCfg:
+    enabled_signals: list[str] = field(
+        default_factory=lambda: ["spectral", "weight_norm", "embedding", "rank", "metadata"]
+    )
+    calibration_version: str = "detect-v0"
+
+
 def register_configs() -> None:
     cs = ConfigStore.instance()
     cs.store(group="engine/pack", name="tiny_decoder", node=TinyDecoderCfg)
     cs.store(group="engine/sandbox", name="docker", node=SandboxCfg)
+    cs.store(group="engine/detect", name="ensemble", node=DetectCfg)
     # ...additional groups as phases add them.
 
 

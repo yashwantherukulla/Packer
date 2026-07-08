@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 2 — Detector
 
+### `feat(detect): add Verdict, CalibrationParams/Store, Ensemble scorer + detect config`
+- **Task 9.** Added `verdict.py` (`Verdict` + `LABEL_LIKELY/INCONCLUSIVE/UNLIKELY`), `calibration.py` value objects (`CalibrationParams.default()` + JSON round-trip, `Metrics`, `LabeledModel`, `CalibrationStore`), and `ensemble.py` (`Ensemble.score(results, calib)` — confidence- and per-signal-weighted, thresholded to a label; iterates results, names no concrete signal). Added `DetectCfg` to `config_schema.py` (registered under Hydra group `engine/detect`) and to `config.yaml` defaults.
+- Deviation: `conf/engine/detect/ensemble.yaml` omitted (ConfigStore-registered `DetectCfg` supplies defaults, consistent with Phase 0/1).
+- **Verified:** `pytest tests/unit/detect/test_ensemble.py test_config.py` → 4 passed (monotonic + labels, low-confidence discounting, store round-trip, config composes); mypy clean; ruff clean.
+
 ### `feat(report): add ReportBuilder base + DetectReportBuilder`
 - **Task 8.** Added `report/builders.py`: `ReportBuilder` base (`_verdict_block` + `kind`) and `DetectReportBuilder.build(verdict, results) -> Report` — one section per signal, per-signal evidence, and the ADR-007 limitation notes (signature-not-proof, cannot-recover-code, cannot-distinguish-code-from-other-data). Consumes structural `VerdictLike`/`SignalResultLike`, so `report` still imports only `common`.
 - **Verified:** `pytest tests/unit/report` → 3 passed; mypy clean; import-linter 2 contracts kept (no `report`→`detect`); ruff clean.
