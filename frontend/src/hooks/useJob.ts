@@ -1,6 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { api } from "@/api/client";
 import type { Artifact, Job, Report } from "@/api/types";
+import { toReportBody, type ReportBody } from "@/lib/report-view";
 
 const TERMINAL = new Set(["succeeded", "failed", "cancelled"]);
 
@@ -35,12 +36,15 @@ export function useReport(id: string | null) {
   return useQuery({
     queryKey: ["report", id],
     enabled: id != null,
-    queryFn: async (): Promise<Report> => {
+    // The wire ReportResponse nests the engine body in an opaque `report` dict;
+    // flatten it here into the presentational ReportBody view model so pages and
+    // ReportView consume a render-ready shape (the sanctioned dict carve-out).
+    queryFn: async (): Promise<ReportBody> => {
       const { data, error } = await api.GET("/reports/{report_id}", {
         params: { path: { report_id: id! } },
       });
       if (error) throw error;
-      return data as Report;
+      return toReportBody(data as Report);
     },
   });
 }
