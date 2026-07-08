@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 3 — Extractor + Sandbox
 
+### `feat(extract): ExtractionService routes exact vs blind by manifest presence`
+- **Task 12.** Added `extract/service.py`: `ExtractionService.extract(target) -> Extraction` — pure routing that picks `"exact"` when a manifest is present (`ModelRef.kind == "pak"`, or a directory containing `manifest.json`) and `"blind"` otherwise; the two extractors do the work.
+- Deviation from plan snippet: added a local `_Extractor` Protocol and `cast(_Extractor, ...)` at the `EXTRACTOR_REGISTRY.create()` boundary so mypy-strict resolves `.extract` (incremental-ports pattern, same as Tasks 9/12 elsewhere).
+- **Verified:** `uv run pytest tests/unit/extract` → 6 passed (exact chosen for `.pak` → byte-identical repo; blind chosen for a manifest-less dir); `uv run mypy src` clean (66 files); `uv run lint-imports` → 3 contracts kept; ruff clean.
+
 ### `feat(extract): BlindExtractor best-effort decode, clearly labeled non-exact`
 - **Task 11.** Added `extract/blind.py`: `BlindExtractor` `@EXTRACTOR_REGISTRY.register("blind")` — no manifest, so it greedy-decodes from BOS via the forward-only `InferenceModel`, heuristically splits on `# FILE:` / `--- file:` boundary markers, and returns an `Extraction` with **low/medium confidence** (0.05–0.35) and explanatory `notes`; never claims byte-exactness and degrades to an empty/partial result (with a note) instead of crashing. `extract/__init__.py` now imports both `exact` and `blind`.
 - Deviations: none (plan snippet used verbatim, ruff line-length reflow only). Since `transformers` is absent on this host, `from_model_ref` raises `ReconstructionError` and the extractor degrades to `files={}, confidence=0.05` — the intended graceful path (CI with transformers exercises the real decode).
