@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 4 — API
 
+### `feat(api): add Alembic env + baseline migration for the four tables`
+- **Task 3.** Added `alembic.ini` (`script_location = alembic`, empty `sqlalchemy.url` filled by env.py), `alembic/env.py` (online-only; sources the DSN from Hydra `cfg.db.dsn` when the ini leaves it blank, else honors the caller-set url; `target_metadata = Base.metadata`), `alembic/script.py.mako`, and `alembic/versions/0001_baseline.py` — real `op.create_table(...)` for `jobs`/`models`/`artifacts`/`reports` mirroring the Task 2 columns (SQLite-compatible `String`/`Text`/`Float`/`JSON`/`DateTime(timezone=True)`), plus indexes on `input_hash`/`sha256`/`job_id` and a reversible `downgrade()`.
+- Deviations: none material. `alembic/` sits at the repo root (outside `src/packer`), so it is not in the import-linter graph nor the `mypy src` scope; ruff still lints it and is clean (the `0001_baseline.py` numeric filename did not trip N999).
+- **Verified:** `uv run pytest tests/unit/api/test_migrations.py -v` → **1 passed** (`alembic upgrade head` on a temp SQLite builds all four tables). `uv run mypy src` clean (79 files); `uv run lint-imports` → 3 contracts kept; ruff check + format clean on `alembic/`.
+
 ### `feat(api): add SQLAlchemy 2.0 typed models for jobs/models/artifacts/reports`
 - **Task 2.** Added `api/db/base.py` (`Base(DeclarativeBase)` + `session_scope(factory)` transactional context manager for worker-side sessions) and `api/db/models.py` — the four SQLAlchemy 2.0 `Mapped[]`-typed models mirroring spec §3: `Job` (id/type/status/timestamps/correlation_id/input_ref/**input_hash**(dedup, indexed)/result_ref/error/**error_code**/progress_pct/progress_step), `ModelRow`, `Artifact`, `ReportRow`. `JSON` (not Postgres `JSONB`) so the same models drive SQLite in unit tests.
 - Deviations: the JSON columns use `Mapped[dict[str, object]]` (not the plan snippet's bare `Mapped[dict]`) — mypy strict forbids the bare generic. `input_hash`/`error_code` are the documented spec-§3 extensions (config-gated dedup + clean `PackerError.code` mapping). `from collections.abc import Iterator` (ruff UP035).
