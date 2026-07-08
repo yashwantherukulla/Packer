@@ -7,6 +7,10 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 3 — Extractor + Sandbox
 
+### `test(sandbox): containment security gate (net/fs/pid/time escapes must fail)`
+- **Task 4.** Added `tests/integration/sandbox/test_containment.py` — the security gate (ADR-008): network blocked+recorded, out-of-tmpfs write fails (read-only root), fork-bomb hits pids-limit, infinite loop hits the wall-clock timeout. Added a **daemon-availability skip guard** so `-m integration` skips gracefully when Docker/the image is absent (rather than erroring).
+- **Verified (this env, daemon down):** all 4 skip cleanly under `-m integration`; ruff clean. These become hard gates in CI / when Docker Desktop is running.
+
 ### `feat(sandbox): DockerSandboxRunner adapter with hardened policy + docker→SandboxError wrapping`
 - **Task 3.** Added `sandbox/adapters/docker.py`: `DockerSandboxRunner` `@SANDBOX_REGISTRY.register("docker")` — the **only** module importing `docker`. Applies every hardened flag per run (`network_mode=none`, `read_only`, `mem_limit`, `nano_cpus`, `pids_limit`, `cap_drop=[ALL]`, `security_opt=no-new-privileges`, non-root `user`, tmpfs), streams the unit into tmpfs via tar, captures stdout/stderr + wall-clock timeout, pulls the `strace` trace and derives `syscalls`/`fs_writes`/`net_attempts` (degrades to empty on missing trace), and wraps all `docker.errors.*` into `SandboxError`. Added `uv add docker`.
 - import-linter: added `docker` to the forbidden list with the **one** sanctioned adapter exception (`sandbox.adapters.docker -> docker`); extended layering with `sandbox` at the top. mypy override + targeted ignore for docker's incomplete stubs.
