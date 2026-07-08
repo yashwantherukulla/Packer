@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 3 — Extractor + Sandbox
 
+### `feat(sandbox): DockerSandboxRunner adapter with hardened policy + docker→SandboxError wrapping`
+- **Task 3.** Added `sandbox/adapters/docker.py`: `DockerSandboxRunner` `@SANDBOX_REGISTRY.register("docker")` — the **only** module importing `docker`. Applies every hardened flag per run (`network_mode=none`, `read_only`, `mem_limit`, `nano_cpus`, `pids_limit`, `cap_drop=[ALL]`, `security_opt=no-new-privileges`, non-root `user`, tmpfs), streams the unit into tmpfs via tar, captures stdout/stderr + wall-clock timeout, pulls the `strace` trace and derives `syscalls`/`fs_writes`/`net_attempts` (degrades to empty on missing trace), and wraps all `docker.errors.*` into `SandboxError`. Added `uv add docker`.
+- import-linter: added `docker` to the forbidden list with the **one** sanctioned adapter exception (`sandbox.adapters.docker -> docker`); extended layering with `sandbox` at the top. mypy override + targeted ignore for docker's incomplete stubs.
+- **Verified (unit, fake client — no daemon):** `pytest tests/unit/sandbox/test_docker_runner.py` → 3 passed (registered, hardened flags applied, `docker.errors→SandboxError`); mypy clean; **import-linter 3 contracts kept**; ruff clean.
+
 ### `feat(sandbox): add SandboxPolicy/SandboxResult/ExecUnit/Finding/FileSet + hardened config`
 - **Task 2.** Added sandbox value objects: `SandboxPolicy` (frozen, `.from_cfg`, all hardened flags), `SandboxResult`, `ExecUnit`, `Finding` (5-field contract), `FileSet` (`.from_extraction`/`.exec_units`, `.py`→python). Extended `SandboxCfg` (full hardened schema + `enabled_scanners` + nested `RiskCfg`), added `ExtractCfg`, registered both Hydra groups; added `engine/extract: default` to config defaults.
 - Deviations: `FileSet.from_extraction` takes a structural `_HasFiles` Protocol (not `extract.Extraction`) so the sandbox needs no `extract` import; `test_fileset.py` deferred to Task 10 (needs `Extraction`); group YAMLs omitted (ConfigStore supplies defaults).
