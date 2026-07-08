@@ -7,6 +7,18 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 0 — Foundations
 
+### `feat(common): add value-object types, port protocols, registry instances`
+- **Task 7.** Added:
+  - `types.py` — `ModelRef` frozen value object (`kind` = `hf`/`path`/`pak`) + `ModelRef.parse` heuristic (`.pak` → paths → HF id).
+  - `ports.py` — port Protocols (SYSTEM-DESIGN §3.2): `ProgressCallback` (re-exported), `Clock`, `Rng`, `Tokenizer`.
+  - `registries.py` — all nine canonical `Registry` instances (`TOKENIZER`, `CODEC`, `STORE`, `ARCH`, `DECODE`, `SIGNAL`, `SCANNER`, `SANDBOX`, `EXTRACTOR`).
+- **Deviation — incremental ports (important, affects later phases):** mypy-strict errors on any forward reference to a type that doesn't exist yet (verified empirically). The plugin ports reference subsystem types that legitimately live in later phases (e.g. `Signal`→`SignalResult`, `Scanner`→`FileSet`/`Finding`, `SandboxRunner`→`ExecUnit`, `DecodeStrategy`→`InferenceModel` [torch]). So the port **catalog is introduced incrementally**, mirroring the project's existing incremental import-linter policy. Growth map is documented in `ports.py`:
+  - Phase 0 T11 (models) adds `ModelLoader`; T12 (artifacts) adds `ArtifactStore`, `ResidualCodec`.
+  - Phase 1 adds `ModelArchitecture`, `DecodeStrategy`; Phase 2 adds `Signal`; Phase 3 adds `Scanner`, `SandboxRunner`, `Extractor`.
+  - Each registry is typed `Registry[object]` until its port lands, then the annotation is tightened (runtime object is unchanged, so callers are unaffected). `TOKENIZER_REGISTRY` is already typed `Registry[Tokenizer]`.
+  - **Downstream note:** when I reach Phases 1–3 I will add each port to `ports.py` + tighten its registry annotation, rather than assume the full catalog exists from Phase 0.
+- **Verified:** `pytest tests/unit/common/test_types.py` → 4 passed; ruff clean (auto-sorted `__all__`); `mypy src` clean.
+
 ### `feat(common): add generic Registry[T] plugin mechanism`
 - **Task 6.** Added `src/packer/engine/common/registry.py`: `Registry[T]` (the single plugin/extensibility mechanism) with `.register(name)` decorator, `.create(name, **kwargs) -> T`, `.names()`. Duplicate registration and unknown lookup both raise `ConfigError`.
 - Deviation from plan snippet: imported `Callable` from `collections.abc` (ruff UP035; `typing.Callable` is deprecated).
