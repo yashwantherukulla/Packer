@@ -7,6 +7,12 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 5 — Web UI
 
+### `feat(ui): add presentational Uploader with extension/size validation`
+- **Task 7.** Added `src/components/Uploader.tsx` — `<Uploader accept label maxBytes? onFile />`, a pure presentational, keyboard-focusable native file input with an `aria-label`. Validates the comma-separated `accept` extensions and optional `maxBytes`; on a valid selection it calls `onFile(file)` and shows the name (`role="status"`), on an invalid one it shows a `role="alert"` message and does not fire `onFile`.
+- Deviations + why:
+  - The reject test now passes `{ applyAccept: false }` to `userEvent.upload`. With the default, user-event's `applyAccept` filters the `.txt` against the input's native `accept=".zip"` before it ever reaches the component, so the component's own extension validation (the behavior under test) never runs. Disabling it exercises the component's `validate()`, which is the point of the test.
+- **Verified:** from `frontend/` — `npm run test -- --run src/components/Uploader.test.tsx` → 1 file / 2 tests passed (accepts `.zip` → `onFile` + name; rejects `.txt` → `role="alert"` mentioning `.zip`, no `onFile`). Full suite `npm run test -- --run` → **9 files / 14 tests passed**. `npm run typecheck` clean; `npm run lint` → 0 errors; `npm run build` → dist bundle built.
+
 ### `feat(ui): add useJobProgress with WS live stream + Query polling fallback`
 - **Task 6.** Added `src/hooks/useJobProgress.ts` — `useJobProgress(jobId) → { event: ProgressView | null, connected, status? }`. Subscribes to `/ws/jobs/{id}` via `createJobProgressSocket` (Task 4); while the socket is open the latest live `ProgressView` wins, and on socket loss (`connected=false`) it derives a `ProgressView` from the polled `useJob` row (`progress_step`/`progress_pct`) so the UI keeps advancing until reconnect (Query is authoritative). `status` comes from the Query job row.
 - Deviations: none — implemented verbatim from the plan.
