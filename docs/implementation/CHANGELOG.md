@@ -7,6 +7,12 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 1 — Packer
 
+### `feat(pack): add from-scratch TinyDecoder + tiny-decoder architecture builder`
+- **Task 5.** Added `arch.py`: `TinyDecoder(nn.Module)` — from-scratch causal decoder (token+positional embeddings, pre-norm blocks with `scaled_dot_product_attention(is_causal=True)`, GELU MLP, LM head) — and `TinyDecoderArch` `@ARCH_REGISTRY.register("tiny-decoder")` building it from config. Registered via `pack/__init__.py`.
+- Added a `ModelArchitecture` Protocol **in `pack`** (not `common`): it references `torch.nn.Module`, so keeping it out of the kernel preserves the framework-light Dependency Rule (documented deviation from SYSTEM-DESIGN §3.2's placement).
+- Deviations: `# noqa: N812` on the idiomatic `import torch.nn.functional as F`; `# type: ignore[attr-defined]` on OmegaConf attribute reads (per plan).
+- **Verified:** `pytest tests/unit/pack/test_arch.py` → 3 passed (registered builder, forward shape `[1,8,64]`, eval determinism); mypy clean; ruff clean.
+
 ### `feat(pack): add byte-level BPE tokenizer (byte-bpe) with lossless coverage`
 - **Task 4.** Added `tokenizer.py`: `ByteBPETokenizer` `@TOKENIZER_REGISTRY.register("byte-bpe")` — HF `tokenizers` BPE over a latin-1 byte↔char bijection with the full 256-symbol initial alphabet, so `decode(encode(x)) == x` for *any* bytes. Implements the enriched `Tokenizer` port + `from_bytes`/`_require`. Registered via `pack/__init__.py`.
 - Deviations from plan snippet: concretized return values (`list(...)`, `int(...)`, typed `text: str`) to satisfy mypy-strict `warn_return_any`; `# type: ignore[no-untyped-call]` on `BpeTrainer` (untyped in the `tokenizers` stubs); tightened the pre-train test to `pytest.raises(PackError)` (ruff B017).
