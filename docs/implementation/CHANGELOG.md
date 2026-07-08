@@ -9,6 +9,12 @@ changed / was added, and how it was verified. Newest at the top.
 
 > **Task order note:** remaining Phase-0 tasks are executed **11 → 12 → 10 → 9** (models, artifacts, config/assembler, import-linter). The import-linter layering contract references `packer.engine.models`/`artifacts`, so it must land *after* those packages exist; models & artifacts are independent of config/assembler.
 
+### `chore: run ruff/mypy as local uv hooks to eliminate version drift`
+- Converted ruff, ruff-format, and mypy pre-commit hooks from pinned mirror repos (`ruff-pre-commit@v0.5.0`, `mirrors-mypy@v1.10.0`) to **local `uv run` hooks**, so the hook uses the exact `uv.lock` versions (ruff 0.15.20, mypy 2.2.0) — identical to CI.
+- **Root cause:** the pinned ruff v0.5.0 didn't enforce `RUF022` (`__all__` sort) the way the uv-locked ruff 0.15.20 does, so `artifacts/codec.py` passed the hook in Task 12 but failed `uv run ruff check` afterward. Fixed `codec.py`'s `__all__` order (`["ResidualCodec", "Residuals"]`).
+- Bumped `pre-commit/pre-commit-hooks` v4.6.0 → v5.0.0 (silences the deprecated-stage-name warning). Updated the canonical config in `DEVELOPMENT.md` §3.2.
+- **Verified:** `pre-commit run --all-files` → all hooks pass.
+
 ### `feat(artifacts): add versioned Manifest, residual codec interface, PakReader/Writer`
 - **Task 12.** Added the `.pak` artifact contract:
   - `common/types.py` — `Residuals = list[tuple[int, int]]` (kernel home per SYSTEM-DESIGN §3.1).

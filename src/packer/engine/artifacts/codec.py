@@ -11,4 +11,4 @@ from __future__ import annotations
 from packer.engine.common.ports import ResidualCodec
 from packer.engine.common.types import Residuals
 
-__all__ = ["Residuals", "ResidualCodec"]
+__all__ = ["ResidualCodec", "Residuals"]
