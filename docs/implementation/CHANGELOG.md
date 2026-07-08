@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 3 — Extractor + Sandbox
 
+### `feat(sandbox): AST dangerous-construct scanner + self-registration pattern`
+- **Task 6.** Added `sandbox/static/ast_rules.py`: `AstRulesScanner` `@SCANNER_REGISTRY.register("ast_rules")` — stdlib-`ast` detector for `eval`/`exec`/`compile`/`__import__`, `os.system`/`popen`/`exec*`, `subprocess`/`socket`/`ctypes`/`pickle`/`marshal`, mapped to severity-tagged `Finding`s; unparseable files → `ast.parse-error` info (no crash). `static/__init__.py` self-registers scanners on import (the pattern later scanners follow).
+- Deviation from plan snippet: `ast.Import | ast.ImportFrom` union in `isinstance` (ruff UP038 modernization).
+- **Verified:** `pytest tests/unit/sandbox/static/test_ast_rules.py` → 4 passed (eval+subprocess flagged high, benign clean, syntax error → info); mypy clean; ruff clean.
+
 ### `feat(sandbox): DynamicAnalyzer maps sandbox behavior to Findings`
 - **Task 5.** Added `sandbox/analyzers.py`: `DynamicAnalyzer.analyze(unit, sandbox, policy) -> list[Finding]` — runs the unit through the injected sandbox port and maps behaviors to `dynamic.*` findings (network-attempt=high, fs-write=medium, timeout=medium, suspicious-syscall=low, trace-unavailable=info). Uses a local `_SandboxRunner` Protocol (sandbox-owned types can't be a kernel port). Unit-tested with a fake sandbox — no Docker.
 - **Verified:** `pytest tests/unit/sandbox/test_dynamic.py` → 2 passed; mypy clean; ruff clean.
