@@ -1,0 +1,7 @@
+[project]
+name = "packer"
+version = "0.1.0"
+description = "Store code in overfit transformer weights; detect and sandbox it."
+readme = "README.md"
+requires-python = ">=3.10,<3.11"
+dependencies = []

@@ -1,0 +1,46 @@
+# --- Python ---
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+.env
+# NB: .python-version and uv.lock are intentionally committed (uv reproducibility)
+
+# --- Testing / coverage ---
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+.mypy_cache/
+.ruff_cache/
+
+# --- Node / frontend ---
+node_modules/
+frontend/dist/
+frontend/.vite/
+*.local
+
+# --- Hydra / runtime outputs ---
+outputs/
+multirun/
+.hydra/
+
+# --- ML artifacts & data (large, not source) ---
+*.safetensors
+*.pak
+data/
+artifacts/
+models_store/
+!**/tests/**/fixtures/**
+
+# --- Infra / local ---
+*.log
+.DS_Store
+docker-compose.override.yml
+
+# --- Historical archive (kept out of the tree) ---
+old.zip
