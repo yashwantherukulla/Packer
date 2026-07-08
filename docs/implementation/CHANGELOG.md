@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 2 — Detector
 
+### `feat(detect): add metadata signal + signal self-registration discovery`
+- **Task 6.** Added `MetadataSignal` `@SIGNAL_REGISTRY.register("metadata")` — config/param heuristics (tiny param proxy, small vocab, `.pak`-shaped manifest markers → strong evidence). Filled `signals/__init__.py` so importing the package self-registers all five signals (open/closed discovery).
+- Deviation: `contextlib.suppress(KeyError)` instead of try/except/pass (ruff SIM105).
+- **Verified:** `pytest tests/unit/detect` → 12 passed (incl. registry discovers all five signals); mypy clean; ruff clean.
+
 ### `feat(detect): add effective/stable-rank signal`
 - **Task 5.** Added `RankSignal` `@SIGNAL_REGISTRY.register("rank")` — mean effective-rank ratio (`effective_rank/full_rank`) across layers; low-rank (concentrated-spectrum) layers score higher.
 - **Verified:** `pytest tests/unit/detect/test_rank.py` → 1 passed (low-rank scores higher than full-rank); mypy clean; ruff clean.
