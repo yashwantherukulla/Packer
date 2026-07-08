@@ -6,18 +6,18 @@ catalog is introduced **incrementally** (the same policy the import-linter
 contracts follow): a port is added in the task/phase where the types it
 references first exist. Growth map:
 
+Ports whose signatures reference only kernel/stdlib types live **here**:
 - Phase 0 (here): ProgressCallback, Clock, Rng, Tokenizer.
-- Phase 0, Task 12 (artifacts): ResidualCodec (references the kernel ``Residuals``).
-- Phase 1 (pack): ModelArchitecture, DecodeStrategy.
-- Phase 2 (detect): ModelLoader, Signal.
-- Phase 3 (extract/sandbox): Scanner, SandboxRunner, Extractor.
-- Phase 4 (api): ArtifactStore.
+- Phase 0, Task 12: ResidualCodec (references the kernel ``Residuals``).
 
-A port lands only in the phase whose types it needs, and only when those types
-live in ``common`` or below (never inverting the Dependency Rule). That is why
-ModelLoader (references the ``models``-owned ``LoadedModel``) and ArtifactStore
-(references the ``artifacts``-owned ``PakBundle``) wait for their first consumer
-rather than sitting in the kernel.
+Ports whose signatures reference torch or subsystem-owned types live **in that
+subsystem** (putting them here would invert the Dependency Rule), so the common
+registries stay ``Registry[object]`` and the subsystem casts at the ``create()``
+boundary:
+- ``pack``: ModelArchitecture (arch.py), DecodeStrategy (decode.py).
+- ``detect``: the ``_Signal`` shape (runner.py); ModelLoader via a local ``_Loader``.
+- ``extract``/``sandbox`` (Phase 3), ``api`` (Phase 4): Extractor, Scanner,
+  SandboxRunner, ArtifactStore land with their subsystems similarly.
 
 Every port is small (interface segregation) and has at least two conceivable
 implementations — the test for whether it should be a port at all.

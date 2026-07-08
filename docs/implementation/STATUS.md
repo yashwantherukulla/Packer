@@ -1,7 +1,7 @@
 # Status
 
-**Current branch:** `main` (Phase 1 merged)
-**Current phase:** Phase 1 complete — next is Phase 2 (Detector)
+**Current branch:** `main` (Phase 2 merged)
+**Current phase:** Phase 2 complete — next is Phase 3 (Extractor + Sandbox)
 **Last updated:** 2026-07-08
 
 Legend: ✅ done · 🚧 in progress · ⬜ not started
@@ -12,7 +12,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started
 |-------|------|-------|
 | 0 | Foundations (toolchain + shared kernel + `.pak` format) | ✅ |
 | 1 | Packer (tiny decoder, trainer, lossless pack) | ✅ |
-| 2 | Detector (inference-free weight signals) | 🚧 |
+| 2 | Detector (inference-free weight signals) | ✅ |
 | 3 | Extractor + Sandbox | ⬜ |
 | 4 | API (FastAPI + Celery + Postgres) | ⬜ |
 | 5 | Web UI (React SPA) | ⬜ |

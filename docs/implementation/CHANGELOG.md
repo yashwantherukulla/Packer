@@ -5,6 +5,72 @@ changed / was added, and how it was verified. Newest at the top.
 
 ---
 
+## Phase 2 — Detector
+
+### `docs: mark Phase 2 complete`
+- **Phase 2 done.** All 12 plan tasks landed across 13 commits on `phase-2-detector` (Tasks 10/11 executed in dependency order 11→10). Five inference-free weight signals + ensemble + calibration + `Detector.detect` + the shared `engine/report/` kernel; no-inference enforced three ways (structural `WeightAccessor`, import-linter torch-forbidden, behavioral gate). **93 unit tests, mypy-strict clean (45 files), 3 import-linter contracts kept, ruff clean.**
+- Branch merged into `main` with `--no-ff`.
+- **Next:** Phase 3 (Extractor + Sandbox) — exact + blind extraction (reusing Phase-1 `Unpacker`), Docker sandbox runner + containment gate, five scanners, risk scorer, `ScanPipeline`.
+
+### `test(detect): add behavioral no-inference gate + enforce contracts (Phase 2 wrap-up)`
+- **Task 12.** Added the behavioral no-inference gate (`test_no_inference_gate.py`): a fake model whose `forward`/`generate` raise; `Detector.detect` still returns a 5-section detect `Report`, proving detection never touches the forward path. Added the import-linter **"detect runs no inference"** contract and extended the layering to `{pack|detect} > {models|artifacts|report} > common`.
+- Deviations / fixes:
+  - import-linter can't forbid an external *subpackage* (`torch.nn.functional`) → forbade all of `torch` in `detect` (stronger: detect is torch-free). Synced DEVELOPMENT.md §3.1.
+  - **pytest `--import-mode=importlib`**: `test_config.py` existed in both `common/` and `detect/`; the default prepend mode requires unique basenames. importlib mode identifies test modules by path — needed as subsystems multiply.
+  - Fixed the Phase-0 `test_registries_exist_and_are_named` (asserted empty registries) — signals now self-register globally, so it asserts `.names()` shape, not emptiness.
+  - Updated the `ports.py` growth-map doc to reflect that torch/subsystem-referencing ports live in their subsystems, not the kernel.
+- **Verified:** **full `tests/unit` → 93 passed**; mypy clean (45 files); import-linter **3 contracts kept**; ruff check + format clean.
+
+### `feat(detect): add Calibrator fit/calibrate + evaluate harness`
+- **Task 10.** Extended `calibration.py`: `Calibrator.fit(labeled_scores)` (deterministic per-signal Fisher weighting + threshold midpoints), `Calibrator.calibrate(fixtures, *, loader)` (loads each fixture weights-only, runs signals, then fits — lazy-imports `run_signals` to avoid the runner↔calibration cycle), and `evaluate(labeled_scores, params) -> Metrics` (measured accuracy/precision/recall + memorized-vs-control separation). Added an **integration-marked** fixture test that **skips** when Phase-1 fixtures are absent.
+- **Verified:** `pytest tests/unit/detect/test_calibration.py` → 2 passed (Fisher up-weights the separating signal; accuracy=1.0, separation>0 on synthetic rows); integration test skips cleanly; mypy clean; ruff clean.
+
+### `feat(detect): add Detector.detect runner + run_signals helper`
+- **Task 11** (done before Task 10 — the calibrator's `calibrate` imports `run_signals`). Added `detect/runner.py`: `Detector.detect(model_ref, cfg, ports) -> Report` — loads weights only → runs config-enabled signals via the registry → ensemble → `DetectReportBuilder`; falls back to `CalibrationParams.default()` when the version file is absent. Plus `run_signals(ref, *, loader, enabled)` reused by the calibrator. Structural `_Loader`/`_Ports`/`_DetectCfg`/`_Signal` Protocols keep `detect` decoupled from the loosely-typed `EnginePorts`/`DictConfig`.
+- Deviation from plan snippet: a `_Signal` Protocol + `cast` at the `Registry[object]` boundary (`SIGNAL_REGISTRY.create(n).analyze` isn't typed otherwise).
+- **Protocol fix (in `report/model.py`):** `VerdictLike`/`SignalResultLike` declared their members as settable attributes, which **frozen** dataclasses (`Verdict`, `SignalResult`) don't satisfy under mypy-strict. Changed them to **read-only `@property`** members, which match both frozen and mutable implementations.
+- **Verified:** `pytest tests/unit/detect/test_runner.py tests/unit/report` → 5 passed (detect report has 5 sections + limitations; deterministic same-model output); mypy clean; ruff clean.
+
+### `feat(detect): add Verdict, CalibrationParams/Store, Ensemble scorer + detect config`
+- **Task 9.** Added `verdict.py` (`Verdict` + `LABEL_LIKELY/INCONCLUSIVE/UNLIKELY`), `calibration.py` value objects (`CalibrationParams.default()` + JSON round-trip, `Metrics`, `LabeledModel`, `CalibrationStore`), and `ensemble.py` (`Ensemble.score(results, calib)` — confidence- and per-signal-weighted, thresholded to a label; iterates results, names no concrete signal). Added `DetectCfg` to `config_schema.py` (registered under Hydra group `engine/detect`) and to `config.yaml` defaults.
+- Deviation: `conf/engine/detect/ensemble.yaml` omitted (ConfigStore-registered `DetectCfg` supplies defaults, consistent with Phase 0/1).
+- **Verified:** `pytest tests/unit/detect/test_ensemble.py test_config.py` → 4 passed (monotonic + labels, low-confidence discounting, store round-trip, config composes); mypy clean; ruff clean.
+
+### `feat(report): add ReportBuilder base + DetectReportBuilder`
+- **Task 8.** Added `report/builders.py`: `ReportBuilder` base (`_verdict_block` + `kind`) and `DetectReportBuilder.build(verdict, results) -> Report` — one section per signal, per-signal evidence, and the ADR-007 limitation notes (signature-not-proof, cannot-recover-code, cannot-distinguish-code-from-other-data). Consumes structural `VerdictLike`/`SignalResultLike`, so `report` still imports only `common`.
+- **Verified:** `pytest tests/unit/report` → 3 passed; mypy clean; import-linter 2 contracts kept (no `report`→`detect`); ruff clean.
+
+### `feat(report): add versioned Report model + JSON/text renderers`
+- **Task 7.** Added the shared reporting kernel `engine/report/model.py` (reused by Phase 3): `Report{kind: detect|scan, schema_version, verdict, sections, evidence, limitations}` (frozen pydantic) with `to_json()`/`to_text()`; unknown `schema_version` raises `ConfigError`. Plus `VerdictBlock`, `ReportSection`, and structural `VerdictLike`/`SignalResultLike` Protocols so builders never import `detect` (keeps `report` importing only `common`).
+- **Verified:** `pytest tests/unit/report/test_model.py` → 2 passed (JSON round-trip + text render, version guard); mypy clean; ruff clean.
+
+### `feat(detect): add metadata signal + signal self-registration discovery`
+- **Task 6.** Added `MetadataSignal` `@SIGNAL_REGISTRY.register("metadata")` — config/param heuristics (tiny param proxy, small vocab, `.pak`-shaped manifest markers → strong evidence). Filled `signals/__init__.py` so importing the package self-registers all five signals (open/closed discovery).
+- Deviation: `contextlib.suppress(KeyError)` instead of try/except/pass (ruff SIM105).
+- **Verified:** `pytest tests/unit/detect` → 12 passed (incl. registry discovers all five signals); mypy clean; ruff clean.
+
+### `feat(detect): add effective/stable-rank signal`
+- **Task 5.** Added `RankSignal` `@SIGNAL_REGISTRY.register("rank")` — mean effective-rank ratio (`effective_rank/full_rank`) across layers; low-rank (concentrated-spectrum) layers score higher.
+- **Verified:** `pytest tests/unit/detect/test_rank.py` → 1 passed (low-rank scores higher than full-rank); mypy clean; ruff clean.
+
+### `feat(detect): add embedding/unembedding structure signal`
+- **Task 4.** Added `EmbeddingSignal` `@SIGNAL_REGISTRY.register("embedding")` — per-token embedding-norm distribution: normalized Shannon entropy (low = a few hot tokens) + dead-region fraction; concentrated embeddings score higher.
+- **Verified:** `pytest tests/unit/detect/test_embedding.py` → 1 passed (`dead_fraction>0.9` on concentrated); mypy clean; ruff clean.
+
+### `feat(detect): add weight-norm profile signal`
+- **Task 3.** Added `WeightNormSignal` `@SIGNAL_REGISTRY.register("weight_norm")` — layerwise Frobenius-norm dispersion (coefficient of variation) + max/median inflation ratio; inflated layers score higher.
+- **Verified:** `pytest tests/unit/detect/test_weight_norm.py` → 1 passed; mypy clean; ruff clean.
+
+### `feat(detect): add spectral/RMT signal (MP outliers + heavy-tail alpha)`
+- **Task 2.** Added `SpectralSignal` `@SIGNAL_REGISTRY.register("spectral")` — combines outlier-singular-value rate (vs. the MP bulk edge) and heavy-tail Hill alpha across attention + MLP matrices; empty model → score/confidence 0.
+- **Verified:** `pytest tests/unit/detect/test_spectral.py` → 2 passed (rank-1 spikes score higher than random, `outlier_rate>=1`); mypy clean; ruff clean.
+
+### `feat(detect): add SignalResult value object + spectral/rank numerics helpers`
+- **Task 1.** Scaffolded `engine/detect/`: `SignalResult{name, score, confidence, evidence}` frozen value object and pure numerics helpers (`singular_values`, `frobenius_norm`, `spectral_norm`, `stable_rank`, `effective_rank`, `mp_upper_edge`, `estimate_sigma`, `count_outlier_singular_values`, `hill_alpha`) — all numpy, no torch.
+- Deviations from plan snippet: typed matrices as `NDArray[Any]` (mypy-strict); replaced ambiguous Unicode (`×`,`–`) in docstrings (ruff RUF002).
+- **Numerics fix:** the plan's median-based `estimate_sigma` under-read σ (0.845 vs true 1.0), pushing the MP edge below the bulk max → false outliers on random Gaussians. Replaced with the Frobenius estimate `σ = ‖W‖_F/√(nm)` (RMS of entries), robust to a few spikes. Verified across 10 seeds: **0 false positives on random matrices, 0 spike misses**.
+- **Verified:** `pytest tests/unit/detect/test_numerics.py` → 5 passed; mypy clean; ruff clean.
+
 ## Phase 1 — Packer
 
 ### `docs: mark Phase 1 complete`
