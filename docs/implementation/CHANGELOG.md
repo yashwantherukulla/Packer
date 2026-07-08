@@ -7,6 +7,10 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 3 — Extractor + Sandbox
 
+### `feat(sandbox): DynamicAnalyzer maps sandbox behavior to Findings`
+- **Task 5.** Added `sandbox/analyzers.py`: `DynamicAnalyzer.analyze(unit, sandbox, policy) -> list[Finding]` — runs the unit through the injected sandbox port and maps behaviors to `dynamic.*` findings (network-attempt=high, fs-write=medium, timeout=medium, suspicious-syscall=low, trace-unavailable=info). Uses a local `_SandboxRunner` Protocol (sandbox-owned types can't be a kernel port). Unit-tested with a fake sandbox — no Docker.
+- **Verified:** `pytest tests/unit/sandbox/test_dynamic.py` → 2 passed; mypy clean; ruff clean.
+
 ### `test(sandbox): containment security gate (net/fs/pid/time escapes must fail)`
 - **Task 4.** Added `tests/integration/sandbox/test_containment.py` — the security gate (ADR-008): network blocked+recorded, out-of-tmpfs write fails (read-only root), fork-bomb hits pids-limit, infinite loop hits the wall-clock timeout. Added a **daemon-availability skip guard** so `-m integration` skips gracefully when Docker/the image is absent (rather than erroring).
 - **Verified (this env, daemon down):** all 4 skip cleanly under `-m integration`; ruff clean. These become hard gates in CI / when Docker Desktop is running.
