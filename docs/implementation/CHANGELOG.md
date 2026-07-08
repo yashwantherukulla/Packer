@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 0 — Foundations
 
+### `feat(common): add PackerError taxonomy`
+- **Task 4.** Added `src/packer/engine/common/errors.py`: `PackerError(message, *, context)` base carrying a stable machine `code` and a safe `context` dict, plus `ConfigError`, `LoadError`, `UnsafeModelError(LoadError)`, `PackError`, `ReconstructionError`, `ScanError`, `SandboxError` — each with a default `code`.
+- Deviation from plan snippet: typed `context` as `dict[str, object]` (bare `dict` fails mypy-strict `disallow_any_generics`). Same parametrization will be applied to other plan snippets that use bare `dict`.
+- **Verified:** `pytest tests/unit/common/test_errors.py` → 3 passed; ruff clean; `mypy src` clean.
+
 ### `ci: add quality + integration workflow via setup-uv`
 - **Task 3.** Added `.github/workflows/ci.yml` with two jobs, both on `astral-sh/setup-uv` (cached) + `uv sync`:
   - `quality`: ruff check → ruff format --check → mypy src → lint-imports → unit tests (with coverage).
