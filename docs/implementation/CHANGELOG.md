@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 6 — Integration & Release
 
+### `docs: ADR-014 compose topology, migrate-on-startup, single config source`
+- **Task 8.** Appended **ADR-014** to `docs/DECISIONS.md` (verbatim per plan): records the full-stack `docker/compose.yml` topology (postgres, redis, api, worker-default, worker-gpu[profile], frontend, build-only `packer-sandbox:latest`), the thin `compose.dev.yml` overlay, migrate-on-startup (`alembic upgrade head`), the single Hydra config source with env-interpolated secrets/URLs (no forked config — the phase-6 compose-parity risk mitigation), and docker-out-of-docker sandbox spawning via the mounted `/var/run/docker.sock`.
+- Deviations: none (appended, not rewritten; ADR log convention preserved — new ADR by appending, never edit history).
+- **Verified:** `grep "^## ADR-014" docs/DECISIONS.md` present as the 14th ADR (follows ADR-013); `check-yaml`/markdown hooks pass. Documentation-only.
+
 ### `build: api/worker/frontend Dockerfiles built via uv (migrate-on-startup)`
 - **Task 7.** Added the three service images plus a build-context ignore file: `docker/api.Dockerfile` (multi-stage `python:3.10-slim` + pinned `uv 0.9`; deps-only cache layer via `uv sync --frozen --no-dev --no-install-project`, then source/conf/alembic copied and the project synced; migrate-on-startup `alembic upgrade head` then serve), `docker/worker.Dockerfile` (same uv build + `docker.io` CLI so the worker drives the sandbox over the mounted `/var/run/docker.sock`; Celery entrypoint, `-Q` overridden per compose service), `docker/frontend.Dockerfile` (node:20 `npm ci` + `npm run build`, static `dist` served by `nginx:1.27-alpine`), and `docker/.dockerignore`.
 - Deviations + why:
