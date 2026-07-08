@@ -18,8 +18,17 @@ class TinyDecoderCfg:
     epochs: int = 200
     lr: float = 3e-4
     batch_size: int = 8
-    device: str = "auto"
+    device: str = "auto"  # auto | cpu | cuda
     deterministic: bool = True
+    # --- Phase 1 additions (plugin selection + training/persistence knobs) ---
+    arch: str = "tiny-decoder"
+    tokenizer: str = "byte-bpe"
+    decode: str = "teacher-forced-greedy"
+    codec: str = "delta-varint-v1"
+    weight_decay: float = 0.0
+    seed: int = 0
+    bos_token_id: int = 0
+    out_dir: str = "./outputs"
 
 
 @dataclass

@@ -55,7 +55,7 @@ Plan: [`docs/plans/2026-07-07-phase-1-packer.md`](../plans/2026-07-07-phase-1-pa
 | # | Task | State |
 |---|------|-------|
 | 1 | Runtime deps (torch, tokenizers) + pack scaffold + varint | ✅ |
-| 2 | Pack config extension (Phase-1 fields) | ⬜ |
+| 2 | Pack config extension (Phase-1 fields) | ✅ |
 | 3 | `MarkerCorpusSerializer` + `SerializedCorpus` | ⬜ |
 | 4 | `ByteBPETokenizer` (`byte-bpe`) | ⬜ |
 | 5 | `TinyDecoder` + `TinyDecoderArch` (`tiny-decoder`) | ⬜ |
