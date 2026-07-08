@@ -22,7 +22,7 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started
 
 Plan: [`docs/plans/2026-07-07-phase-5-web-ui.md`](../plans/2026-07-07-phase-5-web-ui.md)
 
-1 scaffold (Vite+TS+Tailwind+shadcn) + routing shell + dev proxy ✅ · 2 generated OpenAPI client + CI drift check ✅ · 3 verdict/risk color scale + formatters ✅ · 4 WebSocket progress client (reconnect+backoff) ✅ · 5 Query provider + useJob/useJobs/useReport/useArtifact + useSubmit* ✅ · 6 useJobProgress (WS live + Query polling fallback) ✅ · 7 Uploader ✅ · 8 JobProgress ✅ · 9 VerdictBadge + SignalBreakdown ⬜ · 10 FindingsTable + BehaviorPanel ⬜ · 11 ReportView (kind-branch) + PackResultCard ⬜ · 12 pages Pack + Jobs ⬜ · 13 pages Detect + ExtractScan + Report ⬜ · 14 Playwright E2E (three happy paths) ⬜
+1 scaffold (Vite+TS+Tailwind+shadcn) + routing shell + dev proxy ✅ · 2 generated OpenAPI client + CI drift check ✅ · 3 verdict/risk color scale + formatters ✅ · 4 WebSocket progress client (reconnect+backoff) ✅ · 5 Query provider + useJob/useJobs/useReport/useArtifact + useSubmit* ✅ · 6 useJobProgress (WS live + Query polling fallback) ✅ · 7 Uploader ✅ · 8 JobProgress ✅ · 9 VerdictBadge + SignalBreakdown ✅ · 10 FindingsTable + BehaviorPanel ⬜ · 11 ReportView (kind-branch) + PackResultCard ⬜ · 12 pages Pack + Jobs ⬜ · 13 pages Detect + ExtractScan + Report ⬜ · 14 Playwright E2E (three happy paths) ⬜
 
 ## Phase 4 — API tasks
 

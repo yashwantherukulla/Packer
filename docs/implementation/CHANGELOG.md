@@ -7,6 +7,12 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 5 — Web UI
 
+### `feat(ui): add VerdictBadge + SignalBreakdown + report section view models`
+- **Task 9.** Added `src/lib/report-view.ts` — the sanctioned presentational view models over the opaque wire report body: `Verdict`, `ReportSection`, `ReportBody`, `SignalItem`, `Finding`, `Behavior`, a `toReportBody(res)` flattener, and `sectionsByType(body) → { signals, findings, behavior }`. Added `src/components/VerdictBadge.tsx` — `<VerdictBadge kind label score confidence />` toned by `verdictTone` (detect) / `riskTone` (scan) via `toneClasses`. Added `src/components/SignalBreakdown.tsx` — `<SignalBreakdown signals />`, one card per signal with score, confidence, and its evidence key/values.
+- Deviations + why:
+  - **Real wire shape drives the view model.** The generated `ReportResponse` (re-exported `Report`) is `{ id, job_id, kind, report: { [k]: unknown } }` — verdict/sections/evidence/limitations are **nested inside the opaque `report` dict**, not top-level as the plan's snippets assumed. So `report-view.ts` adds a `ReportBody` flat view model plus `toReportBody(res)` (promotes `kind`, spreads the opaque body with safe defaults). `sectionsByType` is typed over `ReportBody` (the plan's `Report["sections"][number]` does not exist on the wire type). This is exactly the `dict` carve-out the previous agent flagged as Task 9 work.
+- **Verified:** from `frontend/` — `npm run test -- --run src/components/VerdictBadge.test.tsx src/components/SignalBreakdown.test.tsx` → 2 files / 2 tests passed (detect badge shows label + 91% + 80% + red tone; one card per signal with evidence key `alpha` = `2.1`). `npm run typecheck` clean; `npm run lint` → 0 errors.
+
 ### `feat(ui): add presentational JobProgress bar with fallback indicator`
 - **Task 8.** Added `src/components/JobProgress.tsx` — `<JobProgress step pct detail? status? connected />`, a pure presentational live progress bar. Clamps `pct` (0..1) and renders an ARIA `progressbar` with `aria-valuenow` in whole percent (0–100), the step/status line, an optional `detail` line, and — when `connected=false` — a `role="status"` `data-testid="fallback-indicator"` "live stream lost — polling for updates" note (the WS-loss → Query-polling signal from `useJobProgress`).
 - Deviations: none — implemented verbatim from the plan.
