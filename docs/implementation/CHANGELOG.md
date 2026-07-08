@@ -7,6 +7,10 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 6 — Integration & Release
 
+### `chore: re-ignore bytecode caches under fixture dirs`
+- **Hygiene (Task 1 follow-up).** The pre-existing `.gitignore` negation `!**/tests/**/fixtures/**` (which tracks fixture *data*) also un-ignored the new importable E2E fixture package's `tests/e2e/fixtures/__pycache__/`, surfacing `.pyc` as untracked and risking an accidental commit. Added `**/tests/**/fixtures/**/__pycache__/` after the negation to re-exclude bytecode caches. No source/test change.
+- **Verified:** `git check-ignore tests/e2e/fixtures/__pycache__/*.pyc` → ignored; `git status --short` → clean (no stray artifacts).
+
 ### `test(security): assert no host-exec path + safetensors-only across upload paths`
 - **Task 6.** Added `tests/integration/sandbox/test_no_host_exec.py`. `test_no_host_exec_path_outside_sandbox_adapter` (no stack) greps all of `src/packer` for `subprocess.` / `os.system` / `os.popen` / `os.exec` / `pty.spawn` / `commands.` and asserts none exist outside the sanctioned modules — proving extracted code never runs on the host. `test_unsafe_pickle_upload_is_refused_everywhere` (integration) posts a pickle-format model to `POST /models` and asserts a 4xx `UnsafeModelError`, confirming the safetensors-only default holds on the registration path. Added a skip-guarded `api_client` fixture to `tests/integration/sandbox/conftest.py`.
 - Deviations + why:
