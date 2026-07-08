@@ -12,7 +12,10 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
-    "test:watch": "vitest"
+    "test:watch": "vitest",
+    "gen:openapi": "curl -s http://localhost:8000/openapi.json -o openapi.json",
+    "gen:api": "openapi-typescript ./openapi.json -o ./src/api/schema.d.ts",
+    "check:api": "npm run gen:api && git diff --exit-code -- src/api/schema.d.ts"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.62.0",
