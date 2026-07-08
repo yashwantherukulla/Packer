@@ -7,6 +7,13 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 0 — Foundations
 
+### `ci: add quality + integration workflow via setup-uv`
+- **Task 3.** Added `.github/workflows/ci.yml` with two jobs, both on `astral-sh/setup-uv` (cached) + `uv sync`:
+  - `quality`: ruff check → ruff format --check → mypy src → lint-imports → unit tests (with coverage).
+  - `integration`: `pytest tests/integration -m integration`.
+- The `lint-imports` step gains its config in Task 9; `tests/integration` is populated in later phases. No git remote yet, so CI is not exercised — the workflow is valid YAML and ready for when a remote is added.
+- **Verified:** `check-yaml` pre-commit hook passes on the workflow file.
+
 ### `chore: add pre-commit with ruff lint+format and mypy`
 - **Task 2.** Added `.pre-commit-config.yaml`: ruff (`--fix`), ruff-format, mypy (strict, `src/`, with pydantic dep), plus hygiene hooks (end-of-file-fixer, trailing-whitespace, check-yaml, check-added-large-files ≤1 MB, check-merge-conflict, detect-private-key).
 - Installed the hook (`pre-commit install`) so lint/format/type-checks run on every commit from here on.

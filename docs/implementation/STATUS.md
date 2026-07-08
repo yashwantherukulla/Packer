@@ -27,7 +27,7 @@ Plan: [`docs/plans/2026-07-07-phase-0-foundations.md`](../plans/2026-07-07-phase
 | — | Implementation log + branching strategy scaffold | ✅ |
 | 1 | uv project → src layout + toolchain config | ✅ |
 | 2 | pre-commit hooks | ✅ |
-| 3 | CI workflow | ⬜ |
+| 3 | CI workflow | ✅ |
 | 4 | Error taxonomy (`PackerError`) | ⬜ |
 | 5 | Progress protocol + implementations | ⬜ |
 | 6 | Generic `Registry[T]` | ⬜ |
