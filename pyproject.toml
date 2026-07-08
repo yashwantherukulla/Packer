@@ -56,6 +56,7 @@ warn_unused_ignores = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
+pythonpath = ["."]  # make the repo-root `scripts` package importable in tests
 addopts = "-q --strict-markers"
 markers = [
   "unit: fast, no external services",
