@@ -1,7 +1,7 @@
 # Status
 
-**Current branch:** `phase-1-packer`
-**Current phase:** Phase 1 — Packer
+**Current branch:** `main` (Phase 1 merged)
+**Current phase:** Phase 1 complete — next is Phase 2 (Detector)
 **Last updated:** 2026-07-08
 
 Legend: ✅ done · 🚧 in progress · ⬜ not started
@@ -11,8 +11,8 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started
 | Phase | Name | State |
 |-------|------|-------|
 | 0 | Foundations (toolchain + shared kernel + `.pak` format) | ✅ |
-| 1 | Packer (tiny decoder, trainer, lossless pack) | 🚧 |
-| 2 | Detector (inference-free weight signals) | ⬜ |
+| 1 | Packer (tiny decoder, trainer, lossless pack) | ✅ |
+| 2 | Detector (inference-free weight signals) | 🚧 |
 | 3 | Extractor + Sandbox | ⬜ |
 | 4 | API (FastAPI + Celery + Postgres) | ⬜ |
 | 5 | Web UI (React SPA) | ⬜ |

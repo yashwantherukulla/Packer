@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 1 — Packer
 
+### `docs: mark Phase 1 complete`
+- **Phase 1 done.** All 12 plan tasks (+1 kernel refactor) landed across 14 commits on `phase-1-packer`. Definition of Done met: `pack → unpack` byte-identical over arbitrary bytes + `epochs=1` (residuals independent of convergence); in-process verify gate raises `PackError` before writing; honest manifest metrics (`artifact_bytes > gzip_bytes`); ≥3 memorized + ≥2 control fixtures; same-seed determinism; all four plugins self-register. **68 unit tests, mypy-strict clean (29 files), 2 import-linter contracts kept, ruff clean.**
+- Branch merged into `main` with `--no-ff`.
+- **Next:** Phase 2 (Detector) — five inference-free weight signals, ensemble + calibration, the shared `engine/report/` model, `Detector.detect`, and the no-inference gate.
+
 ### `feat(pack): add fixture generator (3 memorized paks + 2 control models)`
 - **Task 12.** Added `scripts/make_fixtures.py`: `make_fixtures(out_dir)` writes 3 memorized `.pak` (from distinct synthetic repos) + 2 controls (random-init and normal-trained-on-noise, as safetensors dirs loadable via `HFModelLoader`) — the negatives Phase 2 calibrates against and Phase 3 extracts. Deterministic + tiny; not committed (weights stay out of git). Added `scripts/__init__.py` and `pythonpath = ["."]` to pytest config so `scripts` is importable in tests.
 - **Verified:** `pytest tests/unit/pack/test_fixtures.py` → 1 passed (3 memorized paks round-trip, 2 controls load as safetensors); ruff clean.
