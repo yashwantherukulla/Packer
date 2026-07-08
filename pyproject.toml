@@ -14,6 +14,7 @@ dependencies = [
   "pydantic>=2.7",
   "torch>=2.13.0",
   "tokenizers>=0.23.1",
+  "docker>=7.1.0",
 ]
 
 [dependency-groups]
@@ -38,6 +39,10 @@ packages = ["src/packer"]
 line-length = 100
 target-version = "py310"
 src = ["src", "tests"]
+# Test fixtures are data (e.g. planted-malware samples, .pak artifacts), not code:
+# never lint or reformat them. `--force-exclude` on the hooks honors this even when
+# pre-commit passes the paths explicitly.
+extend-exclude = ["tests/fixtures"]
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "N", "UP", "B", "SIM", "C4", "PTH", "RUF"]
@@ -53,6 +58,14 @@ quote-style = "double"
 python_version = "3.10"
 strict = true
 warn_unused_ignores = true
+
+# The docker SDK ships incomplete type stubs; yara-python is an optional native
+# dependency the scanner lazy-imports and degrades without; transformers is an
+# optional lib the blind extractor lazy-imports for foreign models (degrades to a
+# ReconstructionError when absent). All treated as Any.
+[[tool.mypy.overrides]]
+module = ["docker", "docker.*", "yara", "transformers", "transformers.*"]
+ignore_missing_imports = true
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
@@ -82,7 +95,9 @@ include_external_packages = true
 name = "engine is framework-agnostic"
 type = "forbidden"
 source_modules = ["packer.engine"]
-forbidden_modules = ["packer.api", "packer.workers", "redis", "sqlalchemy", "fastapi", "celery"]
+forbidden_modules = ["packer.api", "packer.workers", "docker", "redis", "sqlalchemy", "fastapi", "celery"]
+# the ONE sanctioned adapter edge: the Docker sandbox runner may import docker.
+ignore_imports = ["packer.engine.sandbox.adapters.docker -> docker"]
 
 [[tool.importlinter.contracts]]
 name = "detect runs no inference"
@@ -97,6 +112,8 @@ forbidden_modules = ["torch"]
 name = "clean layering"          # high -> low; higher layers may import lower ones
 type = "layers"
 layers = [
+  "packer.engine.sandbox",
+  "packer.engine.extract",
   "packer.engine.pack | packer.engine.detect",
   "packer.engine.models | packer.engine.artifacts | packer.engine.report",
   "packer.engine.common",

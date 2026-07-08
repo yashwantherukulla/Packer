@@ -1,0 +1,51 @@
+{
+  "pak_version": "1.0",
+  "created_utc": "2026-07-08T19:13:47.276692+00:00",
+  "model": {
+    "arch": "tiny-decoder",
+    "param_count": 17648,
+    "n_layers": 1,
+    "d_model": 16,
+    "n_heads": 2,
+    "vocab_size": 320,
+    "context_len": 256
+  },
+  "corpus": {
+    "n_files": 2,
+    "n_bytes": 27,
+    "n_tokens": 1,
+    "sha256": "c0e238012914d4f0671a62082024ceb3fe88d36305fd9a9e4c1a2f95d125bbf1",
+    "file_map": [
+      {
+        "path": "main.py",
+        "token_start": 4,
+        "token_end": 5
+      },
+      {
+        "path": "util/helpers.py",
+        "token_start": 4,
+        "token_end": 1
+      }
+    ],
+    "boundary_scheme": "length-prefixed-v1"
+  },
+  "decode": {
+    "strategy": "teacher-forced-greedy",
+    "length_tokens": 1,
+    "bos_token_id": 0
+  },
+  "residuals": {
+    "count": 1,
+    "ratio": 1.0,
+    "codec": "delta-varint-v1"
+  },
+  "metrics": {
+    "model_bytes": 70592,
+    "artifact_bytes": 75574,
+    "original_bytes": 27,
+    "gzip_bytes": 83,
+    "lossless": true,
+    "compression_ratio_vs_original": 2799.037037037037
+  },
+  "seed": 0
+}
