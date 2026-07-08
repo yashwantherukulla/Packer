@@ -7,6 +7,10 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 2 — Detector
 
+### `feat(detect): add effective/stable-rank signal`
+- **Task 5.** Added `RankSignal` `@SIGNAL_REGISTRY.register("rank")` — mean effective-rank ratio (`effective_rank/full_rank`) across layers; low-rank (concentrated-spectrum) layers score higher.
+- **Verified:** `pytest tests/unit/detect/test_rank.py` → 1 passed (low-rank scores higher than full-rank); mypy clean; ruff clean.
+
 ### `feat(detect): add embedding/unembedding structure signal`
 - **Task 4.** Added `EmbeddingSignal` `@SIGNAL_REGISTRY.register("embedding")` — per-token embedding-norm distribution: normalized Shannon entropy (low = a few hot tokens) + dead-region fraction; concentrated embeddings score higher.
 - **Verified:** `pytest tests/unit/detect/test_embedding.py` → 1 passed (`dead_fraction>0.9` on concentrated); mypy clean; ruff clean.
