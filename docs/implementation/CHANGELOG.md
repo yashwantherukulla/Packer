@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 3 — Extractor + Sandbox
 
+### `feat(sandbox): Bandit + Semgrep scanners (bundled rules, graceful degrade)`
+- **Task 7.** Added `BanditScanner` (`bandit_scan`) and `SemgrepScanner` (`semgrep_scan`) — CLI subprocesses over a materialized copy of the extracted files (static-only, never executed on host), mapping tool severities to `Finding`s. Both **degrade gracefully** to an `info` "unavailable" marker on `FileNotFoundError`/timeout/bad-JSON. Semgrep uses a bundled local ruleset (no network). Shared `_util.materialize()` temp-dir helper.
+- Deviation from plan snippet: **`uv add bandit` only, not semgrep** — semgrep has no Windows wheel (ADR-004 primary target); its scanner degrades to the `semgrep.unavailable` marker (installed in CI/Linux, it produces real findings). The test accepts either path.
+- **Verified:** `pytest tests/unit/sandbox/static` → 8 passed (bandit yields a real finding for `shell=True`; semgrep degrades cleanly on Windows); mypy clean; ruff clean.
+
 ### `feat(sandbox): AST dangerous-construct scanner + self-registration pattern`
 - **Task 6.** Added `sandbox/static/ast_rules.py`: `AstRulesScanner` `@SCANNER_REGISTRY.register("ast_rules")` — stdlib-`ast` detector for `eval`/`exec`/`compile`/`__import__`, `os.system`/`popen`/`exec*`, `subprocess`/`socket`/`ctypes`/`pickle`/`marshal`, mapped to severity-tagged `Finding`s; unparseable files → `ast.parse-error` info (no crash). `static/__init__.py` self-registers scanners on import (the pattern later scanners follow).
 - Deviation from plan snippet: `ast.Import | ast.ImportFrom` union in `isinstance` (ruff UP038 modernization).

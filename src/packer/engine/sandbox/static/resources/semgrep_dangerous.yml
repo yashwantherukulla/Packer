@@ -1,0 +1,20 @@
+rules:
+  - id: subprocess-shell-true
+    languages: [python]
+    severity: ERROR
+    message: subprocess called with shell=True (command-injection risk)
+    patterns:
+      - pattern: subprocess.$FN(..., shell=True, ...)
+  - id: dynamic-exec
+    languages: [python]
+    severity: ERROR
+    message: dynamic code execution via exec/eval
+    pattern-either:
+      - pattern: exec(...)
+      - pattern: eval(...)
+  - id: base64-exec
+    languages: [python]
+    severity: WARNING
+    message: exec/eval of base64-decoded payload (obfuscation)
+    patterns:
+      - pattern: $F(base64.b64decode(...))
