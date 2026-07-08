@@ -1,6 +1,7 @@
 defaults:
   - engine/pack: tiny_decoder
   - engine/detect: ensemble
+  - engine/extract: default
   - engine/sandbox: docker
   - _self_
 

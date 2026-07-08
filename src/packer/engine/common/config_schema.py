@@ -32,13 +32,36 @@ class TinyDecoderCfg:
 
 
 @dataclass
+class RiskCfg:
+    # verdict thresholds on the normalized [0,1] risk score
+    suspicious: float = 0.35
+    malicious: float = 0.70
+    # per-severity weights used by RiskScorer
+    weight_info: float = 0.0
+    weight_low: float = 0.2
+    weight_medium: float = 0.5
+    weight_high: float = 0.85
+    weight_critical: float = 1.0
+
+
+@dataclass
 class SandboxCfg:
     image: str = "packer-sandbox:latest"
+    network: str = "none"
+    read_only: bool = True
     memory: str = "256m"
     cpus: float = 1.0
     pids_limit: int = 64
     timeout_s: int = 20
-    network: str = "none"
+    cap_drop: list[str] = field(default_factory=lambda: ["ALL"])
+    security_opt: list[str] = field(default_factory=lambda: ["no-new-privileges"])
+    user: str = "1000:1000"
+    tmpfs_dir: str = "/scratch"
+    tmpfs_size: str = "16m"
+    enabled_scanners: list[str] = field(
+        default_factory=lambda: ["ast_rules", "bandit_scan", "semgrep_scan", "yara_scan", "secrets"]
+    )
+    risk: RiskCfg = field(default_factory=RiskCfg)
 
 
 @dataclass
@@ -49,11 +72,21 @@ class DetectCfg:
     calibration_version: str = "detect-v0"
 
 
+@dataclass
+class ExtractCfg:
+    decode: str = "teacher-forced-greedy"  # DECODE_REGISTRY name == manifest decode.strategy
+    codec: str = "delta-varint-v1"  # CODEC_REGISTRY name == manifest residuals.codec
+    blind_max_tokens: int = 4096
+    blind_temperature: float = 0.0
+    sandbox_runner: str = "docker"  # SANDBOX_REGISTRY name for assemble_ports
+
+
 def register_configs() -> None:
     cs = ConfigStore.instance()
     cs.store(group="engine/pack", name="tiny_decoder", node=TinyDecoderCfg)
     cs.store(group="engine/sandbox", name="docker", node=SandboxCfg)
     cs.store(group="engine/detect", name="ensemble", node=DetectCfg)
+    cs.store(group="engine/extract", name="default", node=ExtractCfg)
     # ...additional groups as phases add them.
 
 
