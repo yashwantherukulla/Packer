@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 3 — Extractor + Sandbox
 
+### `feat(sandbox): StaticAnalyzer iterates enabled_scanners via SCANNER_REGISTRY`
+- **Task 9.** Added `StaticAnalyzer` to `sandbox/analyzers.py`: `scan(files, enabled) -> list[Finding]` resolves each name via `SCANNER_REGISTRY.create(name)` and aggregates findings. Open/closed — adding a scanner (new file + `enabled_scanners` entry) needs zero edits here; unknown names raise `ConfigError` (fail-fast) straight from the registry.
+- Deviation from plan snippet: added a local `_Scanner` Protocol and `cast(_Scanner, ...)` at the `create()` boundary (the incremental-ports pattern — `SCANNER_REGISTRY` is `Registry[object]`), so mypy-strict resolves `.scan`.
+- **Verified:** `uv run pytest tests/unit/sandbox/test_static.py` → 3 passed (aggregates enabled scanners, open/closed new scanner needs no edit, unknown → `ConfigError`); `uv run mypy src` clean (60 files); `uv run lint-imports` → 3 contracts kept; ruff clean.
+
 ### `feat(sandbox): YARA + secrets scanners with bundled rules`
 - **Task 8.** Added `YaraScanner` (`yara_scan`, bundled `malware.yar` — obfuscated-exec + reverse-shell shapes) and `SecretsScanner` (`secrets`, regex sweep for private keys / AWS keys / generic tokens). `static/__init__.py` now self-registers all five scanners.
 - Deviations: **yara-python is not installed** (no working Windows build; `uv add yara-python` didn't take) — so `yara_scan` **lazy-imports** yara and degrades to `yara.unavailable` (works with or without the native lib; installed in CI it matches real patterns). Extended the `detect-private-key` pre-commit exclude to cover `secrets.py` + `test_secrets.py` (they carry a non-real key header, as flagged in Phase 0). Added a `yara` mypy override.
