@@ -7,6 +7,10 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 1 — Packer
 
+### `feat(pack): add reversible MarkerCorpusSerializer + SerializedCorpus`
+- **Task 3.** Added `corpus.py`: `SerializedCorpus` frozen value object (`bytes`, `file_map` of `(posix_relpath, start, end)`, `.n_files`/`.original_bytes`) and `MarkerCorpusSerializer` — deterministic (sorted posix paths), self-delimiting magic-framed serialize + fully reversible deserialize; corrupt framing raises `PackError`.
+- **Verified:** `pytest tests/unit/pack/test_corpus.py` → 4 passed (nested/binary/empty/unicode-path files, determinism, span integrity, corruption); mypy clean.
+
 ### `feat(pack): extend TinyDecoderCfg with plugin-name + training fields`
 - **Task 2.** Extended `TinyDecoderCfg` with backward-compatible defaulted fields: plugin selectors (`arch`, `tokenizer`, `decode`, `codec`) + training/persistence knobs (`weight_decay`, `seed`, `bos_token_id`, `out_dir`). Compose + override verified under `cfg.engine.pack`.
 - Deviation from plan: the `conf/engine/pack/tiny_decoder.yaml` group file is omitted (as in Phase 0 Task 10, the ConfigStore-registered structured config supplies defaults); test uses the corrected dotted override `engine.pack.seed=7`.
