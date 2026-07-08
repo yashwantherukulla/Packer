@@ -1,7 +1,7 @@
 # Status
 
-**Current branch:** `phase-4-api`
-**Current phase:** Phase 4 — API
+**Current branch:** `phase-5-web-ui`
+**Current phase:** Phase 5 — Web UI
 **Last updated:** 2026-07-09
 
 Legend: ✅ done · 🚧 in progress · ⬜ not started
@@ -15,8 +15,14 @@ Legend: ✅ done · 🚧 in progress · ⬜ not started
 | 2 | Detector (inference-free weight signals) | ✅ |
 | 3 | Extractor + Sandbox | ✅ |
 | 4 | API (FastAPI + Celery + Postgres) | ✅ |
-| 5 | Web UI (React SPA) | ⬜ |
+| 5 | Web UI (React SPA) | ✅ |
 | 6 | Integration & Release | ⬜ |
+
+## Phase 5 — Web UI tasks
+
+Plan: [`docs/plans/2026-07-07-phase-5-web-ui.md`](../plans/2026-07-07-phase-5-web-ui.md)
+
+1 scaffold (Vite+TS+Tailwind+shadcn) + routing shell + dev proxy ✅ · 2 generated OpenAPI client + CI drift check ✅ · 3 verdict/risk color scale + formatters ✅ · 4 WebSocket progress client (reconnect+backoff) ✅ · 5 Query provider + useJob/useJobs/useReport/useArtifact + useSubmit* ✅ · 6 useJobProgress (WS live + Query polling fallback) ✅ · 7 Uploader ✅ · 8 JobProgress ✅ · 9 VerdictBadge + SignalBreakdown ✅ · 10 FindingsTable + BehaviorPanel ✅ · 11 ReportView (kind-branch) + PackResultCard ✅ · 12 pages Pack + Jobs ✅ · 13 pages Detect + ExtractScan + Report ✅ · 14 Playwright E2E (three happy paths) ✅ (specs+config+fixture; live run deferred to Phase 6 — no running stack)
 
 ## Phase 4 — API tasks
 

@@ -1,0 +1,4 @@
+# Normalize all text files to LF in the repo so generated artifacts
+# (openapi.json, src/api/schema.d.ts) are byte-identical across Windows/Linux,
+# keeping the `check:api` OpenAPI drift gate stable in CI.
+* text=auto eol=lf

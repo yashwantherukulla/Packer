@@ -21,7 +21,14 @@ htmlcov/
 # --- Node / frontend ---
 node_modules/
 frontend/dist/
+frontend/coverage/
 frontend/.vite/
+frontend/playwright-report/
+frontend/test-results/
+# Playwright-managed browser binaries (installed outside the repo, but guard anyway)
+frontend/.playwright/
+# TypeScript incremental build info (emitted by `tsc -b`)
+*.tsbuildinfo
 *.local
 
 # --- Hydra / runtime outputs ---
