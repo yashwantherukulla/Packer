@@ -237,18 +237,29 @@ class _FakeAsyncResult:
         self.id = task_id
 
 
+class _SentTask:
+    """One recorded enqueue; exposes `.name`/`.args`/`.queue` for assertions."""
+
+    def __init__(self, name: str, args: list[object], queue: str | None) -> None:
+        self.name = name
+        self.args = args
+        self.queue = queue
+
+
 class FakeBroker:
-    """Celery-handle stand-in: records `send_task(name, args=...)` enqueues by name."""
+    """Celery-handle stand-in: records `send_task(name, args=..., queue=...)` enqueues."""
 
     def __init__(self) -> None:
-        self.sent: list[tuple[str, list[object], dict[str, object]]] = []
+        self.sent: list[_SentTask] = []
 
     def send_task(
         self,
         name: str,
         args: list[object] | None = None,
         kwargs: dict[str, object] | None = None,
+        *,
+        queue: str | None = None,
         **options: object,
     ) -> _FakeAsyncResult:
-        self.sent.append((name, list(args or []), dict(kwargs or {})))
+        self.sent.append(_SentTask(name, list(args or []), queue))
         return _FakeAsyncResult(uuid.uuid4().hex)
