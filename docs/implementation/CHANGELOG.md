@@ -7,6 +7,12 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 1 — Packer
 
+### `refactor(common): preserve concrete type in Registry.register; enrich Tokenizer port`
+- Prep for the Phase-1 plugins (kernel change discovered when first using the decorator):
+  - `Registry.register` is now generic in the **decorated** class (`_C`), not the registry's `T`. Before, `@REG.register(...) class Foo` collapsed `Foo`'s type to `type[T]`, erasing its concrete API — which would have broken `decode.py`/`unpacker.py` calling `ByteBPETokenizer`'s non-port methods (`bos_id`, `from_bytes`) in mypy-strict `src`. Now the decorated symbol keeps its concrete type; `create` still returns `T`.
+  - `Tokenizer` port gained `vocab_size()`, `bos_id()`, `to_bytes()` — the methods `Packer` needs from any tokenizer plugin, so it stays plugin-agnostic (uses `TOKENIZER_REGISTRY.create(...)` without casting to the concrete class).
+- **Verified:** `pytest tests/unit/common` green; mypy clean; import-linter kept.
+
 ### `feat(pack): add reversible MarkerCorpusSerializer + SerializedCorpus`
 - **Task 3.** Added `corpus.py`: `SerializedCorpus` frozen value object (`bytes`, `file_map` of `(posix_relpath, start, end)`, `.n_files`/`.original_bytes`) and `MarkerCorpusSerializer` — deterministic (sorted posix paths), self-delimiting magic-framed serialize + fully reversible deserialize; corrupt framing raises `PackError`.
 - **Verified:** `pytest tests/unit/pack/test_corpus.py` → 4 passed (nested/binary/empty/unicode-path files, determinism, span integrity, corruption); mypy clean.
