@@ -186,6 +186,52 @@ class FakeRedis:
         return None
 
 
+class SyncFakeRedis:
+    """Synchronous redis stand-in for RedisProgress (worker side publishes sync)."""
+
+    def __init__(self) -> None:
+        self.published: list[tuple[str, str]] = []
+
+    def publish(self, channel: str, payload: str) -> None:
+        self.published.append((channel, payload))
+
+
+class _StubMetrics:
+    def model_dump(self, *, mode: str = "python") -> dict[str, object]:
+        return {"lossless": True}
+
+
+class _StubManifest:
+    metrics = _StubMetrics()
+
+    def model_dump(self, *, mode: str = "python") -> dict[str, object]:
+        return {"pak_version": "1.0"}
+
+
+class _StubBundle:
+    manifest = _StubManifest()
+
+
+class StubStore:
+    """Store stand-in: open_pak returns a stub bundle (pack-path persistence branch)
+    and put_blob echoes the key back (upload path)."""
+
+    def open_pak(self, artifact_id: str) -> _StubBundle:
+        return _StubBundle()
+
+    def put_blob(self, key: str, data: bytes) -> str:
+        return key
+
+
+class FakeEnginePorts:
+    """EnginePorts stand-in wired with a StubStore (no live adapters)."""
+
+    def __init__(self) -> None:
+        self.store = StubStore()
+        self.loader: object | None = None
+        self.sandbox: object | None = None
+
+
 class _FakeAsyncResult:
     def __init__(self, task_id: str) -> None:
         self.id = task_id

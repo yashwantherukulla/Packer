@@ -83,6 +83,13 @@ ignore_missing_imports = true
 module = ["celery", "celery.*"]
 ignore_missing_imports = true
 
+# Celery's @app.task is an untyped decorator (no stubs), which under mypy strict
+# would flag the four task functions as "untyped-decorator". Their bodies stay
+# fully typed; disable only that one sub-check for the tasks module.
+[[tool.mypy.overrides]]
+module = ["packer.workers.tasks"]
+disallow_untyped_decorators = false
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["."]  # make the repo-root `scripts` package importable in tests
