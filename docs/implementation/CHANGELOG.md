@@ -5,6 +5,20 @@ changed / was added, and how it was verified. Newest at the top.
 
 ---
 
+## Phase 5 — Web UI
+
+### `feat(ui): scaffold Vite+TS+Tailwind+shadcn, routing shell, dev proxy`
+- **Task 1.** Created the `frontend/` npm project (React 18 + Vite 5 + TypeScript strict): `package.json` (dev/build/typecheck/lint/test scripts), `vite.config.ts` (React plugin, `@/*` alias, dev proxy `/api`→`http://localhost:8000` with the `/api` prefix stripped + `/ws`→`ws://localhost:8000`, inline Vitest jsdom config), `tsconfig.json`/`tsconfig.node.json` (strict + `noUnusedLocals`/`noUnusedParameters`/`noFallthroughCasesInSwitch`, `@/*` path alias), `tailwind.config.ts` (`darkMode: "class"`) + `postcss.config.js`, `eslint.config.js` (flat config), `components.json` (shadcn). Added `src/main.tsx` (React root → `RouterProvider`), `src/router.tsx` (`createBrowserRouter`, `/` → `Layout`/`Home`), `src/index.css` (Tailwind directives), `src/test/setup.ts` (jest-dom + RTL cleanup), `src/components/Layout.tsx` (nav shell) + `src/pages/Home.tsx` (three engine entry-point cards). Extended the root `.gitignore` for `frontend/{dist,coverage,.vite,playwright-report,test-results}`.
+- Deviations + why:
+  - **Node 22.20.0** used (plan says Node 20 LTS); `engines.node` set to `>=20` so it accepts the installed 22 (a compatible superset) rather than pinning/rejecting it.
+  - **Tailwind v3** pinned (`^3.4`) to match the plan's PostCSS/`@tailwind`-directive config model (v4's CSS-first config would break it).
+  - **`shadcn init` not run** (interactive + network); `components.json` written by hand and `index.css` holds the `@tailwind base/components/utilities` directives. No shadcn UI components are consumed by Tasks 1–7, so no tokens were needed yet.
+  - **tsconfig project-reference fix:** the plan's `tsconfig.json` both included `vite.config.ts` and referenced the composite `tsconfig.node.json` that owns it → TS6305/TS6310 under `tsc --noEmit`/`tsc -b`. Moved `vite.config.ts` ownership entirely to the node project (composite, emits to `node_modules/.tmp`) and dropped it from the root `include`. Both `tsc --noEmit` and `tsc -b && vite build` are clean.
+  - **Home test scoped to `<main>`:** the plan's `getByRole("link", { name: /pack|detect|extract \+ scan/i })` matched the Layout nav links (including the "Packer" brand) as well as the Home cards → a multiple-match error. Queries are now scoped `within(getByRole("main"))` so they target the three Home cards, preserving the test's intent and the `<Layout>` wrapper.
+- **Verified:** from `frontend/` — `npm run test -- --run` → 1 file / 1 test passed (Home). `npm run typecheck` (`tsc --noEmit`) clean. `npm run lint` (`eslint .`) → 0 errors. `npm run build` (`tsc -b && vite build`) → dist bundle built (209 KB js / 6.6 KB css).
+
+---
+
 ## Phase 4 — API
 
 ### `test(api): add testcontainers integration + httpx API-E2E happy-path suites`
