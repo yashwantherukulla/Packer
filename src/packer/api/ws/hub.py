@@ -1,16 +1,33 @@
 from __future__ import annotations
 
-import redis.asyncio as aioredis
+from collections.abc import Awaitable, Callable
+from typing import Any
+
+Send = Callable[[str], Awaitable[None]]
 
 
 class ProgressHub:
-    """Fan-out hub for job progress events (fleshed out in Task 14).
+    """Bridges Redis progress channels to WebSocket clients (SYSTEM-DESIGN §3.6).
 
-    Holds the async Redis client + channel prefix; the WebSocket relay that
-    subscribes to ``progress:{job_id}`` and fans events out to connected
-    clients lands in Task 14 (SYSTEM-DESIGN §3.6).
+    Keeps no ML state — pure fan-out.
     """
 
-    def __init__(self, redis: aioredis.Redis, *, prefix: str = "progress:") -> None:
+    def __init__(self, redis: Any, *, prefix: str = "progress:") -> None:
         self._redis = redis
         self._prefix = prefix
+
+    async def relay(self, job_id: str, send: Send, *, max_messages: int | None = None) -> None:
+        channel = f"{self._prefix}{job_id}"
+        pubsub = self._redis.pubsub()
+        await pubsub.subscribe(channel)
+        seen = 0
+        try:
+            async for message in pubsub.listen():
+                if message.get("type") != "message":
+                    continue
+                await send(message["data"])
+                seen += 1
+                if max_messages is not None and seen >= max_messages:
+                    return
+        finally:
+            await pubsub.unsubscribe(channel)
