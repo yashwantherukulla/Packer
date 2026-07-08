@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 4 — API
 
+### `feat(workers): add RedisProgress ProgressCallback publishing to Redis`
+- **Task 9.** Added `workers/progress.py` — `RedisProgress(job_id, client, *, prefix="progress:")` whose `__call__(*, step, pct, detail=None)` matches `packer.engine.common.progress.ProgressCallback` exactly and publishes a `ProgressEvent`-shaped JSON (`{job_id, step, pct, detail}`) to the `progress:{job_id}` channel. The engine stays Redis-agnostic (SYSTEM-DESIGN §3.6): the worker binds this bridge before calling the engine, so the engine never imports redis.
+- Deviations: none (plan snippet used verbatim; `client: Any` keeps it broker-agnostic for the sync/async redis client alike).
+- **Verified:** `uv run pytest tests/unit/workers/test_progress.py -v` → **1 passed** (publishes to `progress:job-1` with the exact JSON payload). `uv run mypy src` clean (88 files); ruff check + format clean.
+
 ### `feat(workers): add Celery app with Hydra broker config and queue routing`
 - **Task 8.** Added `workers/celery_app.py` — `make_celery(cfg=None) -> Celery` reads broker/result-backend from Hydra (`cfg.broker`), sets `task_default_queue="default"` and `task_routes` (`pack.run`→`gpu`; `detect.run`/`extract.run`/`scan.run`→`default`, spec §4), flips `task_always_eager` from `cfg.broker.eager` (for in-process integration/E2E), and pins `worker_pool="solo"` (Windows-safe local dev; Linux workers override in compose). `app = make_celery()` module singleton. The `Celery(...)` constructor is lazy — no broker connection at import, so the routing test needs no live Redis.
 - Deviations: added a `[[tool.mypy.overrides]] ignore_missing_imports` entry for `celery`/`celery.*` (it ships no py.typed/stubs — same pattern as docker/yara/transformers). The engine never imports celery (still enforced by the framework-agnostic contract).
