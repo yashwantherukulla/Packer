@@ -7,6 +7,10 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 0 — Foundations
 
+### `feat(common): add structured logging with correlation-id context`
+- **Task 8.** Added `src/packer/engine/common/logging.py`: `get_logger(name)` (attaches a correlation-id filter once), `bind_correlation_id(cid)` / `current_correlation_id()` backed by a `ContextVar`, and `_CorrelationFilter` which stamps every record with the current id (or `-`).
+- **Verified:** `pytest tests/unit/common/test_logging.py` → 2 passed; ruff clean; `mypy src` clean.
+
 ### `feat(common): add value-object types, port protocols, registry instances`
 - **Task 7.** Added:
   - `types.py` — `ModelRef` frozen value object (`kind` = `hf`/`path`/`pak`) + `ModelRef.parse` heuristic (`.pak` → paths → HF id).
