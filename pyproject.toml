@@ -61,3 +61,28 @@ markers = [
   "e2e: full stack",
   "gpu: requires CUDA",
 ]
+
+# --- Dependency Rule enforcement (SYSTEM-DESIGN §10) ---
+# Contracts are introduced incrementally as their modules land (import-linter
+# errors on any referenced module that doesn't exist). Phase 0 registers the
+# framework-agnostic forbidden contract + a minimal layering over the packages
+# that exist so far (common < models|artifacts). Later phases extend this
+# toward the canonical end-state in DEVELOPMENT.md §3.1 (detect no-inference,
+# the docker adapter carve-out, and the extract/sandbox/api layers).
+[tool.importlinter]
+root_package = "packer"
+include_external_packages = true
+
+[[tool.importlinter.contracts]]
+name = "engine is framework-agnostic"
+type = "forbidden"
+source_modules = ["packer.engine"]
+forbidden_modules = ["packer.api", "packer.workers", "redis", "sqlalchemy", "fastapi", "celery"]
+
+[[tool.importlinter.contracts]]
+name = "clean layering"          # high -> low; higher layers may import lower ones
+type = "layers"
+layers = [
+  "packer.engine.models | packer.engine.artifacts",
+  "packer.engine.common",
+]

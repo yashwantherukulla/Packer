@@ -9,6 +9,15 @@ changed / was added, and how it was verified. Newest at the top.
 
 > **Task order note:** remaining Phase-0 tasks are executed **11 → 12 → 10 → 9** (models, artifacts, config/assembler, import-linter). The import-linter layering contract references `packer.engine.models`/`artifacts`, so it must land *after* those packages exist; models & artifacts are independent of config/assembler.
 
+### `chore: enforce Dependency Rule with import-linter contracts`
+- **Task 9** (Phase-0 finale). Appended `[tool.importlinter]` to `pyproject.toml` with the Phase-0 contract subset:
+  - **"engine is framework-agnostic"** (forbidden): `packer.engine` must not import `packer.api`, `packer.workers`, `redis`, `sqlalchemy`, `fastapi`, or `celery`.
+  - **"clean layering"** (layers): `packer.engine.models | packer.engine.artifacts` sit above `packer.engine.common`; `common` imports nothing higher, and `models`/`artifacts` don't import each other.
+- Added `include_external_packages = true` (required because the forbidden lists name external frameworks) — this was the one non-obvious knob; without it import-linter errors out.
+- Added a local `import-linter` pre-commit hook (`uv run lint-imports`); synced `DEVELOPMENT.md` §3.1/§3.2.
+- Later phases extend these toward the canonical end-state (detect no-inference, the docker adapter carve-out, and the extract/sandbox/api layers) as those modules land.
+- **Verified:** `uv run lint-imports` → **2 contracts kept, 0 broken** (33 files, 60 dependencies analyzed).
+
 ### `feat(common): add Hydra config tree, structured configs, assembler skeleton`
 - **Task 10.** Added:
   - `conf/config.yaml` — root Hydra config; `defaults` select `engine/pack: tiny_decoder` + `engine/sandbox: docker` (resolved from the ConfigStore); `run_dir` via `${oc.env:...}` interpolation.

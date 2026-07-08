@@ -158,6 +158,7 @@ markers = [
 # sandbox imports extract (the DRY reuse edges, SYSTEM-DESIGN §4).
 [tool.importlinter]
 root_package = "packer"
+include_external_packages = true   # required: the forbidden lists name external frameworks
 
 [[tool.importlinter.contracts]]
 name = "engine is framework-agnostic"
@@ -218,6 +219,11 @@ repos:
       - id: mypy
         name: mypy
         entry: uv run mypy src
+        language: system
+        pass_filenames: false
+      - id: import-linter   # enforces the Dependency Rule (added in Phase 0, Task 9)
+        name: import-linter
+        entry: uv run lint-imports
         language: system
         pass_filenames: false
   - repo: https://github.com/pre-commit/pre-commit-hooks
