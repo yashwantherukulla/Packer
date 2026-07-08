@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 4 — API
 
+### `feat(api): add JobService with status transitions and input-hash dedup`
+- **Task 6.** Added `api/jobs/service.py` — `JobService(repo, *, dedup=False)` with `create(type, input_ref=None, input_hash=None) -> JobRecord`, `get(id)`, `list(status=None, type=None)`. `correlation_id == job id` (SYSTEM-DESIGN §7); rows map to the `JobRecord` wire schema via `model_validate(..., from_attributes=True)`. When `dedup` is on and a **succeeded** job with the same `input_hash` exists, it is returned instead of creating a new one (spec §4). Pure orchestration — no engine logic.
+- Deviations: none (plan snippet used verbatim modulo ruff import grouping).
+- **Verified:** `uv run pytest tests/unit/api/test_job_service.py -v` → **3 passed** (create returns queued job with `correlation_id == id`; dedup-on reuses the succeeded job; dedup-off always mints a new id). `uv run mypy src` clean (86 files); `uv run lint-imports` → 3 contracts kept; ruff clean.
+
 ### `feat(api): add Pydantic v2 wire schemas for requests/responses`
 - **Task 5.** Added `api/schemas/requests.py` (`PackRequest`/`DetectRequest`/`ExtractRequest`/`ScanRequest`/`ModelCreate`, all `extra="forbid"`; `ScanRequest` has an after-validator enforcing exactly one of `extraction_id`/`model_ref`) and `api/schemas/responses.py` (`JobRecord`/`JobList`/`ModelRecord`/`ArtifactResponse`/`ReportResponse`; the `_Resp` base sets `from_attributes=True` so ORM rows map straight through). Pydantic is the wire contract only (ADR-012).
 - Deviations: the `dict` wire fields (`manifest_json`/`metrics_json`/`report`) are typed `dict[str, object]` (not the plan's bare `dict`) for mypy strict; the `_exactly_one_target` return annotation is the unquoted `ScanRequest` (safe under `from __future__ import annotations`, ruff-clean).
