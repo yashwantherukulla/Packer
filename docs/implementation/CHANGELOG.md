@@ -7,6 +7,12 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 2 — Detector
 
+### `feat(detect): add Detector.detect runner + run_signals helper`
+- **Task 11** (done before Task 10 — the calibrator's `calibrate` imports `run_signals`). Added `detect/runner.py`: `Detector.detect(model_ref, cfg, ports) -> Report` — loads weights only → runs config-enabled signals via the registry → ensemble → `DetectReportBuilder`; falls back to `CalibrationParams.default()` when the version file is absent. Plus `run_signals(ref, *, loader, enabled)` reused by the calibrator. Structural `_Loader`/`_Ports`/`_DetectCfg`/`_Signal` Protocols keep `detect` decoupled from the loosely-typed `EnginePorts`/`DictConfig`.
+- Deviation from plan snippet: a `_Signal` Protocol + `cast` at the `Registry[object]` boundary (`SIGNAL_REGISTRY.create(n).analyze` isn't typed otherwise).
+- **Protocol fix (in `report/model.py`):** `VerdictLike`/`SignalResultLike` declared their members as settable attributes, which **frozen** dataclasses (`Verdict`, `SignalResult`) don't satisfy under mypy-strict. Changed them to **read-only `@property`** members, which match both frozen and mutable implementations.
+- **Verified:** `pytest tests/unit/detect/test_runner.py tests/unit/report` → 5 passed (detect report has 5 sections + limitations; deterministic same-model output); mypy clean; ruff clean.
+
 ### `feat(detect): add Verdict, CalibrationParams/Store, Ensemble scorer + detect config`
 - **Task 9.** Added `verdict.py` (`Verdict` + `LABEL_LIKELY/INCONCLUSIVE/UNLIKELY`), `calibration.py` value objects (`CalibrationParams.default()` + JSON round-trip, `Metrics`, `LabeledModel`, `CalibrationStore`), and `ensemble.py` (`Ensemble.score(results, calib)` — confidence- and per-signal-weighted, thresholded to a label; iterates results, names no concrete signal). Added `DetectCfg` to `config_schema.py` (registered under Hydra group `engine/detect`) and to `config.yaml` defaults.
 - Deviation: `conf/engine/detect/ensemble.yaml` omitted (ConfigStore-registered `DetectCfg` supplies defaults, consistent with Phase 0/1).

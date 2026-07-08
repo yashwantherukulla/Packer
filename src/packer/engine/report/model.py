@@ -66,16 +66,24 @@ class Report(BaseModel):
 @runtime_checkable
 class VerdictLike(Protocol):
     """Structural shape the builders consume — ``detect.Verdict`` satisfies it by shape,
-    so ``report`` never imports ``detect`` (keeps the layering acyclic)."""
+    so ``report`` never imports ``detect`` (keeps the layering acyclic). Members are
+    read-only properties so **frozen** dataclasses (``detect.Verdict``) satisfy them."""
 
-    label: str
-    score: float
-    confidence: float
+    @property
+    def label(self) -> str: ...
+    @property
+    def score(self) -> float: ...
+    @property
+    def confidence(self) -> float: ...
 
 
 @runtime_checkable
 class SignalResultLike(Protocol):
-    name: str
-    score: float
-    confidence: float
-    evidence: dict[str, object]
+    @property
+    def name(self) -> str: ...
+    @property
+    def score(self) -> float: ...
+    @property
+    def confidence(self) -> float: ...
+    @property
+    def evidence(self) -> dict[str, object]: ...
