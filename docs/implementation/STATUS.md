@@ -57,7 +57,7 @@ Plan: [`docs/plans/2026-07-07-phase-1-packer.md`](../plans/2026-07-07-phase-1-pa
 | 1 | Runtime deps (torch, tokenizers) + pack scaffold + varint | ✅ |
 | 2 | Pack config extension (Phase-1 fields) | ✅ |
 | 3 | `MarkerCorpusSerializer` + `SerializedCorpus` | ✅ |
-| 4 | `ByteBPETokenizer` (`byte-bpe`) | ⬜ |
+| 4 | `ByteBPETokenizer` (`byte-bpe`) | ✅ |
 | 5 | `TinyDecoder` + `TinyDecoderArch` (`tiny-decoder`) | ⬜ |
 | 6 | `OverfitTrainer` | ⬜ |
 | 7 | `DeltaVarintCodec` + `ResidualCapturer` (`delta-varint-v1`) | ⬜ |

@@ -7,6 +7,11 @@ changed / was added, and how it was verified. Newest at the top.
 
 ## Phase 1 — Packer
 
+### `feat(pack): add byte-level BPE tokenizer (byte-bpe) with lossless coverage`
+- **Task 4.** Added `tokenizer.py`: `ByteBPETokenizer` `@TOKENIZER_REGISTRY.register("byte-bpe")` — HF `tokenizers` BPE over a latin-1 byte↔char bijection with the full 256-symbol initial alphabet, so `decode(encode(x)) == x` for *any* bytes. Implements the enriched `Tokenizer` port + `from_bytes`/`_require`. Registered via `pack/__init__.py`.
+- Deviations from plan snippet: concretized return values (`list(...)`, `int(...)`, typed `text: str`) to satisfy mypy-strict `warn_return_any`; `# type: ignore[no-untyped-call]` on `BpeTrainer` (untyped in the `tokenizers` stubs); tightened the pre-train test to `pytest.raises(PackError)` (ruff B017).
+- **Verified:** `pytest tests/unit/pack/test_tokenizer.py` → 6 passed (lossless on training text + arbitrary 256-byte binary, serialization round-trip); mypy clean; ruff clean.
+
 ### `refactor(common): preserve concrete type in Registry.register; enrich Tokenizer port`
 - Prep for the Phase-1 plugins (kernel change discovered when first using the decorator):
   - `Registry.register` is now generic in the **decorated** class (`_C`), not the registry's `T`. Before, `@REG.register(...) class Foo` collapsed `Foo`'s type to `type[T]`, erasing its concrete API — which would have broken `decode.py`/`unpacker.py` calling `ByteBPETokenizer`'s non-port methods (`bos_id`, `from_bytes`) in mypy-strict `src`. Now the decorated symbol keeps its concrete type; `create` still returns `T`.
