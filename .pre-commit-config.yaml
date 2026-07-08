@@ -1,0 +1,43 @@
+# ruff, ruff-format, and mypy run as LOCAL hooks via `uv run` so they use the
+# exact versions pinned in uv.lock — identical to CI (`uv run ruff/mypy ...`).
+# This avoids the hook-vs-CI drift that mirror `rev:` pins cause (e.g. RUF rules
+# changing between ruff releases). Bump those tools with `uv lock --upgrade`.
+repos:
+  - repo: local
+    hooks:
+      - id: ruff
+        name: ruff (lint)
+        entry: uv run ruff check --fix
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+      - id: ruff-format
+        name: ruff (format)
+        entry: uv run ruff format
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+      - id: mypy
+        name: mypy
+        entry: uv run mypy src
+        language: system
+        pass_filenames: false
+      - id: import-linter
+        name: import-linter
+        entry: uv run lint-imports
+        language: system
+        pass_filenames: false
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v5.0.0
+    hooks:
+      - id: end-of-file-fixer
+      - id: trailing-whitespace
+      - id: check-yaml
+      - id: check-added-large-files
+        args: [--maxkb=1024]
+      - id: check-merge-conflict
+      - id: detect-private-key
+        # The Phase 3 plan documents the secrets scanner — a fixture key header
+        # (truncated, non-real) plus the scanner's own detection regex. Phase 3
+        # will extend this exclude to the scanner's source/test fixtures.
+        exclude: ^docs/plans/2026-07-07-phase-3-extractor-sandbox\.md$

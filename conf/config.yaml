@@ -1,0 +1,6 @@
+defaults:
+  - engine/pack: tiny_decoder
+  - engine/sandbox: docker
+  - _self_
+
+run_dir: ${oc.env:PACKER_RUN_DIR,./outputs}

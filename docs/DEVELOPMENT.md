@@ -158,6 +158,7 @@ markers = [
 # sandbox imports extract (the DRY reuse edges, SYSTEM-DESIGN §4).
 [tool.importlinter]
 root_package = "packer"
+include_external_packages = true   # required: the forbidden lists name external frameworks
 
 [[tool.importlinter.contracts]]
 name = "engine is framework-agnostic"
@@ -193,22 +194,40 @@ layers = [
 
 Runs on every commit; also runnable manually with `pre-commit run --all-files`.
 
+ruff, ruff-format, and mypy run as **local `uv run` hooks** so they use the exact
+versions pinned in `uv.lock` — identical to CI. This deliberately avoids the
+hook-vs-CI drift that mirror `rev:` pins cause (a `ruff-pre-commit` pinned to an
+old ruff can pass a file that the uv-locked ruff in CI rejects, e.g. when an `RUF`
+rule changes between releases). Bump the tools with `uv lock --upgrade`.
+
 ```yaml
 repos:
-  - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.5.0
+  - repo: local
     hooks:
-      - id: ruff            # lint, autofix
-        args: [--fix]
-      - id: ruff-format     # format
-  - repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.10.0
-    hooks:
+      - id: ruff
+        name: ruff (lint)
+        entry: uv run ruff check --fix
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
+      - id: ruff-format
+        name: ruff (format)
+        entry: uv run ruff format
+        language: system
+        types_or: [python, pyi]
+        require_serial: true
       - id: mypy
-        additional_dependencies: ["pydantic>=2.7"]
-        files: ^src/
+        name: mypy
+        entry: uv run mypy src
+        language: system
+        pass_filenames: false
+      - id: import-linter   # enforces the Dependency Rule (added in Phase 0, Task 9)
+        name: import-linter
+        entry: uv run lint-imports
+        language: system
+        pass_filenames: false
   - repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.6.0
+    rev: v5.0.0
     hooks:
       - id: end-of-file-fixer
       - id: trailing-whitespace
@@ -217,9 +236,12 @@ repos:
         args: [--maxkb=1024]   # keep weights/artifacts out of git
       - id: check-merge-conflict
       - id: detect-private-key
+        # Exempt docs/tests that legitimately embed key headers (the Phase 3
+        # secrets-scanner spec + its fixtures) — never real keys.
+        exclude: ^docs/plans/2026-07-07-phase-3-extractor-sandbox\.md$
 ```
 
-> **Requirement satisfied:** ruff lint **and** format run on commit via the two `ruff-pre-commit` hooks; this is the first thing enabled in Phase 0.
+> **Requirement satisfied:** ruff lint **and** format run on commit via the local `uv run ruff` hooks; this is the first thing enabled in Phase 0. The import-linter hook (added in Phase 0, Task 9) follows the same local-hook pattern.
 
 ### 3.3 CI — `.github/workflows/ci.yml` (shape)
 
