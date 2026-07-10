@@ -1,0 +1,21 @@
+# Build context is the repo root (compose `context: ..`), so the effective .dockerignore
+# must live here — docker/.dockerignore is not consulted for these builds. Keeps the
+# context small so `docker compose build` doesn't ship the venv, node_modules, or git
+# history to the daemon. None of these paths are COPYed by any Dockerfile.
+.venv/
+frontend/node_modules/
+frontend/dist/
+outputs/
+**/__pycache__/
+*.pak
+.git/
+.github/
+tests/
+docs/
+alembic/versions/__pycache__/
+.mypy_cache/
+.ruff_cache/
+.pytest_cache/
+.hypothesis/
+.import_linter_cache/
+old.zip

@@ -1,0 +1,32 @@
+name: packer
+
+# CPU-only overlay. `pack.run` routes to the `gpu` queue (workers/tasks.py), whose
+# dedicated worker (`worker-gpu`) reserves an NVIDIA device and is gated behind the
+# `gpu` compose profile. On a machine with no GPU, don't start that profile — instead
+# let the default worker drain BOTH queues so pack jobs are consumed on CPU. The pack
+# engine itself runs on CPU by default (config device: "auto" -> cpu when no CUDA).
+#
+# Without this overlay a submitted pack job sits in the `gpu` queue forever, because
+# nothing consumes it. Always layer this file (last) on a GPU-less host, and never
+# pass `--profile gpu`.
+#
+# This overlay also swaps the api + worker images for CUDA-free builds
+# (api.cpu.Dockerfile / worker.cpu.Dockerfile): they install torch from the CPU index
+# instead of the CUDA wheel pinned in uv.lock, so no nvidia-*/cuda-*/triton packages are
+# downloaded or shipped. pyproject.toml/uv.lock are untouched, so the default images and
+# the `gpu` profile still build the CUDA stack.
+#
+# Usage (simplest — built images, migrations run on startup):
+#   docker compose -f docker/compose.yml -f docker/compose.cpu.yml up --build
+#
+# Usage (dev — live source reload + vite dev server):
+#   docker compose -f docker/compose.yml -f docker/compose.dev.yml -f docker/compose.cpu.yml up --build
+services:
+  api:
+    build:
+      dockerfile: docker/api.cpu.Dockerfile   # context (..) inherited from compose.yml
+
+  worker-default:
+    build:
+      dockerfile: docker/worker.cpu.Dockerfile
+    command: ["celery", "-A", "packer.workers.celery_app", "worker", "-Q", "default,gpu", "--loglevel=info"]

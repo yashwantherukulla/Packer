@@ -3,9 +3,10 @@ from __future__ import annotations
 from collections.abc import Iterator
 from typing import Any
 
-from fastapi import Depends, Request
+from fastapi import Depends
 from omegaconf import DictConfig
 from sqlalchemy.orm import Session
+from starlette.requests import HTTPConnection
 
 from packer.api.composition import assemble_ports
 from packer.api.db.repositories import (
@@ -17,18 +18,21 @@ from packer.api.db.repositories import (
 from packer.api.jobs.service import JobService
 
 
-def get_settings(request: Request) -> DictConfig:
-    settings: DictConfig = request.app.state.settings
+# HTTPConnection is the shared base of Request and WebSocket, so these deps resolve on
+# both HTTP routes and the /ws/jobs WebSocket (which has no Request — a Request-typed
+# dep 500s the handshake).
+def get_settings(conn: HTTPConnection) -> DictConfig:
+    settings: DictConfig = conn.app.state.settings
     return settings
 
 
-def get_session(request: Request) -> Iterator[Session]:
-    with request.app.state.session_factory() as session:
+def get_session(conn: HTTPConnection) -> Iterator[Session]:
+    with conn.app.state.session_factory() as session:
         yield session
 
 
-def get_job_service(request: Request, session: Session = Depends(get_session)) -> JobService:
-    settings: DictConfig = request.app.state.settings
+def get_job_service(conn: HTTPConnection, session: Session = Depends(get_session)) -> JobService:
+    settings: DictConfig = conn.app.state.settings
     return JobService(SqlJobRepository(session), dedup=bool(settings.api.dedup))
 
 
@@ -48,8 +52,8 @@ def get_store(settings: DictConfig = Depends(get_settings)) -> Any:
     return assemble_ports(settings).store
 
 
-def get_hub(request: Request) -> Any:
-    return request.app.state.hub
+def get_hub(conn: HTTPConnection) -> Any:
+    return conn.app.state.hub
 
 
 class _CeleryBroker:

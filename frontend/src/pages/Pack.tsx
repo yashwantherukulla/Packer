@@ -16,8 +16,10 @@ export function Pack() {
 
   const onFile = (file: File) => {
     const form = new FormData();
-    form.append("repo", file);
-    form.append("epochs", String(epochs));
+    // The API's POST /pack expects the multipart field named "file" (see
+    // packer.api.routers.pack.submit_pack); "repo" yields a 422. Epochs are set by
+    // server-side Hydra config and currently ignored by the endpoint.
+    form.append("file", file);
     submit.mutate(form);
   };
 

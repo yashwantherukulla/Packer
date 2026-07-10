@@ -8,7 +8,15 @@ from packer.engine.common.config_schema import compose_config
 
 def make_celery(cfg: DictConfig | None = None) -> Celery:
     cfg = cfg if cfg is not None else compose_config()
-    app = Celery("packer", broker=cfg.broker.url, backend=cfg.broker.result_backend)
+    app = Celery(
+        "packer",
+        broker=cfg.broker.url,
+        backend=cfg.broker.result_backend,
+        # Import the task module on worker start so the @app.task defs register;
+        # `-A packer.workers.celery_app` loads only this module otherwise, and the
+        # worker would discard pack.run/detect.run/extract.run/scan.run as unregistered.
+        include=["packer.workers.tasks"],
+    )
     app.conf.task_default_queue = "default"
     app.conf.task_routes = {
         "pack.run": {"queue": "gpu"},  # GPU-pinned training (spec §4)

@@ -37,6 +37,21 @@ docker compose -f docker/compose.yml up --build      # postgres, redis, api, wor
 - API + OpenAPI docs: http://localhost:8000/docs
 - Frontend console: http://localhost:5173
 
+**No GPU? (CPU-only machines).** `pack.run` is routed to a `gpu` queue drained only by
+the profiled `worker-gpu`, so on a GPU-less host a submitted pack job would hang. Layer
+the CPU overlay so the default worker drains both queues (and don't pass `--profile gpu`):
+
+```bash
+docker compose -f docker/compose.yml -f docker/compose.cpu.yml up --build
+```
+
+The engine auto-selects CPU (`device: auto` → `cpu` when no CUDA is present). This overlay
+also builds CUDA-free `api`/`worker` images (`docker/api.cpu.Dockerfile`,
+`docker/worker.cpu.Dockerfile`): PyTorch is installed from the CPU index, so no
+`nvidia-*`/`cuda-*`/`triton` wheels are downloaded or shipped — a few GB smaller than the
+default images. `pyproject.toml`/`uv.lock` are untouched, so the default build and the
+`gpu` profile still ship the CUDA stack.
+
 Dev overlay (live source reload + vite dev server):
 
 ```bash
