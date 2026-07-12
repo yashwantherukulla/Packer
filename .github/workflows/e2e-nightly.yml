@@ -1,7 +1,5 @@
 name: e2e-nightly
 on:
-  schedule:
-    - cron: "0 6 * * *"   # 06:00 UTC nightly
   workflow_dispatch: {}
 
 jobs:
