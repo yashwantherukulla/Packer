@@ -3,7 +3,7 @@ FROM python:3.10-slim AS runtime
 ENV PYTHONUNBUFFERED=1 \
     UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
-    UV_PROJECT_ENVIRONMENT=/app/.venv \
+    VIRTUAL_ENV=/app/.venv \
     PATH="/app/.venv/bin:$PATH"
 COPY --from=ghcr.io/astral-sh/uv:0.9 /uv /uvx /bin/
 WORKDIR /app
@@ -11,14 +11,18 @@ WORKDIR /app
 # 1) deps only (cache layer) — no project, no dev group
 COPY pyproject.toml uv.lock ./
 RUN --mount=type=cache,target=/root/.cache/uv \
-    uv sync --frozen --no-dev --no-install-project
+    uv venv "$VIRTUAL_ENV" \
+ && uv sync --frozen --no-dev --no-install-project
 
 # 2) project source + config + migrations
+# Editable install keeps `packer` rooted at /app/src/packer so config loading
+# still resolves the copied /app/conf tree inside the container.
 COPY src ./src
 COPY conf ./conf
 COPY alembic ./alembic
 COPY alembic.ini ./
-RUN --mount=type=cache,target=/root/.cache/uv uv sync --frozen --no-dev
+COPY README.md ./
+RUN --mount=type=cache,target=/root/.cache/uv uv pip install --no-deps -e .
 
 EXPOSE 8000
 # migrate-on-startup (ADR-014), then serve.

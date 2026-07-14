@@ -10,4 +10,5 @@ test("pack a tiny repo → progress streams → artifact card with honest metric
   await expect(card).toContainText("Original");
   await expect(card).toContainText("Artifact (.pak)");
   await expect(page.getByTestId("download")).toBeVisible();
+  await expect(page.getByTestId("detect-from-pack")).toBeVisible();
 });

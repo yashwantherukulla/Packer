@@ -23,11 +23,14 @@ class FilesystemArtifactStore:
 
     def put_pak(self, bundle: PakBundle) -> str:
         artifact_id = uuid.uuid4().hex
-        PakWriter().write(self._root / "pak" / artifact_id, bundle)
+        PakWriter().write(self.pak_path(artifact_id), bundle)
         return artifact_id
 
     def open_pak(self, artifact_id: str) -> PakBundle:
-        return PakReader().read(self._root / "pak" / artifact_id)
+        return PakReader().read(self.pak_path(artifact_id))
+
+    def pak_path(self, artifact_id: str) -> Path:
+        return self._root / "pak" / artifact_id
 
     def put_blob(self, key: str, data: bytes) -> str:
         path = self._root / "blob" / key

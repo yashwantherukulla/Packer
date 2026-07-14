@@ -24,8 +24,9 @@ test("pack -> detect -> extract+scan through the UI", async ({ page }) => {
   expect(artifactId, "artifact id parsed from download href").toBeTruthy();
 
   // 2. DETECT (drive from the artifact just produced)
-  await page.goto("/detect");
-  await page.getByTestId("model-ref").fill(`artifact:${artifactId}`);
+  await page.getByTestId("detect-from-pack").click();
+  await expect(page).toHaveURL(/\/detect\?model_ref=/);
+  await expect(page.getByTestId("model-ref")).toHaveValue(`artifact:${artifactId}`);
   await page.getByTestId("submit").click();
   await expect(page.getByTestId("verdict-badge")).toHaveText(/MEMORIZED-CODE-LIKELY/i, {
     timeout: 120_000,

@@ -3,13 +3,17 @@ import { afterEach, expect, test, vi } from "vitest";
 import { ExtractScan } from "@/pages/ExtractScan";
 import type { Report } from "@/api/types";
 
+const progressMock = { event: null, connected: true, status: "succeeded" };
+const jobMock = { data: { status: "succeeded", result_ref: "report:r2", error: null, error_code: null } };
+
 vi.mock("@/hooks/useSubmit", () => ({
-  useSubmitScan: () => ({ mutate: vi.fn(), data: { id: "j2", result_ref: "r2" } }),
+  useSubmitScan: () => ({ mutate: vi.fn(), data: { id: "j2" } }),
 }));
 vi.mock("@/hooks/useJobProgress", () => ({
-  useJobProgress: () => ({ event: null, connected: true, status: "succeeded" }),
+  useJobProgress: () => progressMock,
 }));
 vi.mock("@/hooks/useJob", () => ({
+  useJob: () => jobMock,
   useReport: () => ({
     data: {
       kind: "scan",

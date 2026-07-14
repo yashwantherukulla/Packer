@@ -1,3 +1,4 @@
+import { Link } from "react-router-dom";
 import { formatBytes, formatRatio } from "@/lib/format";
 
 export type ArtifactMetrics = {
@@ -10,9 +11,11 @@ export type ArtifactMetrics = {
 export function PackResultCard({
   metrics,
   downloadHref,
+  detectHref,
 }: {
   metrics: ArtifactMetrics;
   downloadHref: string;
+  detectHref?: string;
 }) {
   const rows: [string, string][] = [
     ["Original", formatBytes(metrics.original_bytes)],
@@ -38,13 +41,24 @@ export function PackResultCard({
           memorization demo, not a compressor.
         </p>
       )}
-      <a
-        href={downloadHref}
-        className="mt-3 inline-block rounded bg-blue-600 px-3 py-1.5 text-white"
-        data-testid="download"
-      >
-        Download .pak
-      </a>
+      <div className="mt-3 flex flex-wrap gap-2">
+        <a
+          href={downloadHref}
+          className="inline-block rounded bg-blue-600 px-3 py-1.5 text-white"
+          data-testid="download"
+        >
+          Download .pak
+        </a>
+        {detectHref && (
+          <Link
+            to={detectHref}
+            className="inline-block rounded border border-slate-300 px-3 py-1.5 text-slate-900"
+            data-testid="detect-from-pack"
+          >
+            Open in Detect
+          </Link>
+        )}
+      </div>
     </div>
   );
 }

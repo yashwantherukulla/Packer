@@ -1,3 +1,5 @@
+from pathlib import Path
+
 from fastapi.testclient import TestClient
 from tests.unit.fakes import (
     InMemoryArtifactRepository,
@@ -24,6 +26,23 @@ def _client():
     return TestClient(app)
 
 
+def _download_client(tmp_path: Path):
+    app = create_app()
+    artifacts = InMemoryArtifactRepository()
+    artifact_path = tmp_path / "store" / "pak" / "a1"
+    artifact_path.parent.mkdir(parents=True, exist_ok=True)
+    artifact_path.write_bytes(b"pak-bytes")
+    artifacts.insert(id="a1", job_id="j1", pak_path="a1", manifest={}, metrics={})
+
+    class _Store:
+        def pak_path(self, artifact_id: str) -> Path:
+            return artifact_path
+
+    app.dependency_overrides[deps.get_artifact_repo] = lambda: artifacts
+    app.dependency_overrides[deps.get_store] = lambda: _Store()
+    return TestClient(app)
+
+
 def test_get_job_by_id():
     r = _client().get("/jobs/j1")
     assert r.status_code == 200 and r.json()["type"] == "detect"
@@ -42,3 +61,11 @@ def test_get_report_serves_shared_model():
 
 def test_missing_job_is_404():
     assert _client().get("/jobs/nope").status_code == 404
+
+
+def test_get_artifact_download_streams_file(tmp_path: Path):
+    client = _download_client(tmp_path)
+    resp = client.get("/artifacts/a1", params={"download": "1"})
+    assert resp.status_code == 200
+    assert resp.headers["content-disposition"].startswith("attachment; filename=a1.pak")
+    assert resp.content == b"pak-bytes"

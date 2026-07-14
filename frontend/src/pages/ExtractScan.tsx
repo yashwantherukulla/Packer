@@ -1,17 +1,24 @@
 import { useState } from "react";
+import { JobFailureCard } from "@/components/JobFailureCard";
 import { JobProgress } from "@/components/JobProgress";
 import { ReportView } from "@/components/ReportView";
+import { useJob, useReport } from "@/hooks/useJob";
 import { useSubmitScan } from "@/hooks/useSubmit";
 import { useJobProgress } from "@/hooks/useJobProgress";
-import { useReport } from "@/hooks/useJob";
+import { isTerminalStatus, parseResultRef } from "@/lib/result-ref";
 
 export function ExtractScan() {
   const [modelRef, setModelRef] = useState("");
   const submit = useSubmitScan();
   const jobId = submit.data?.id ?? null;
   const progress = useJobProgress(jobId ?? "");
-  const done = progress.status === "succeeded";
-  const report = useReport(done ? (submit.data?.result_ref ?? null) : null);
+  const job = useJob(jobId ?? "");
+  const status = job.data?.status ?? progress.status;
+  const done = status === "succeeded";
+  const failed = status === "failed";
+  const active = !isTerminalStatus(status);
+  const reportId = parseResultRef(job.data?.result_ref, "report");
+  const report = useReport(done ? reportId : null);
 
   const mode = (report.data?.evidence as { extraction?: { mode?: string } } | undefined)?.extraction
     ?.mode;
@@ -42,15 +49,16 @@ export function ExtractScan() {
           Run
         </button>
       </div>
-      {jobId && !done && (
+      {jobId && active && (
         <JobProgress
           step={progress.event?.step ?? "queued"}
           pct={progress.event?.pct ?? 0}
           detail={progress.event?.detail}
-          status={progress.status}
+          status={status}
           connected={progress.connected}
         />
       )}
+      {failed && <JobFailureCard error={job.data?.error} errorCode={job.data?.error_code} />}
       {banner && (
         <p className="text-sm font-medium" data-testid="reconstruction">
           {banner}
