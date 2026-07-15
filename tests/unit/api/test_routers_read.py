@@ -1,4 +1,6 @@
+import io
 from pathlib import Path
+import tarfile
 
 from fastapi.testclient import TestClient
 from tests.unit.fakes import (
@@ -68,4 +70,7 @@ def test_get_artifact_download_streams_file(tmp_path: Path):
     resp = client.get("/artifacts/a1", params={"download": "1"})
     assert resp.status_code == 200
     assert resp.headers["content-disposition"].startswith("attachment; filename=a1.pak")
-    assert resp.content == b"pak-bytes"
+    with tarfile.open(fileobj=io.BytesIO(resp.content), mode="r") as tar:
+        names = tar.getnames()
+    assert "a1/model.safetensors" in names
+    assert "a1/manifest.json" in names

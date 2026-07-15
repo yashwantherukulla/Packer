@@ -9,7 +9,9 @@ from packer.engine.common.assembler import EnginePorts
 from packer.engine.common.errors import PackerError
 from packer.engine.common.logging import bind_correlation_id, get_logger
 from packer.engine.common.progress import ProgressCallback
+from packer.engine.extract.model import Extraction
 from packer.engine.report.model import Report
+from packer.workers.io import persist_extraction
 from packer.workers.progress import RedisProgress
 
 _log = get_logger("packer.workers.runner")
@@ -64,6 +66,9 @@ def _persist_result(
             id=rid, job_id=job.id, kind=result.kind, report=result.model_dump(mode="json")
         )
         return f"report:{rid}"
+    if job.type == "extract" and isinstance(result, Extraction):
+        extraction_id = persist_extraction(cast(Any, ports.store), job.id, result)
+        return f"extraction:{extraction_id}"
     # str result = opaque store reference (pack artifact id | extraction id)
     if job.type == "pack" and isinstance(result, str):
         store = cast(Any, ports.store)
@@ -76,4 +81,4 @@ def _persist_result(
             metrics=bundle.manifest.metrics.model_dump(mode="json"),
         )
         return f"artifact:{result}"
-    return f"extraction:{result}"
+    return f"result:{result}"

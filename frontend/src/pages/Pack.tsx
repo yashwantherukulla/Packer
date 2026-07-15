@@ -48,7 +48,7 @@ export function Pack() {
       </label>
       {submit.isError && (
         <p className="text-sm text-red-700" role="alert">
-          Submission failed.
+          Submission failed: {submit.error instanceof Error ? submit.error.message : "unknown error"}
         </p>
       )}
       {jobId && active && (

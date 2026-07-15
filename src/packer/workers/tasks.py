@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any
 
 import redis
@@ -8,6 +7,7 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from packer.api.composition import assemble_ports
+from packer.api.model_refs import resolve_extract_target, resolve_model_ref
 from packer.api.db.base import session_scope
 from packer.api.db.repositories import (
     SqlArtifactRepository,
@@ -15,22 +15,20 @@ from packer.api.db.repositories import (
     SqlReportRepository,
 )
 from packer.engine.common.config_schema import compose_config
-from packer.engine.common.types import ModelRef
 from packer.engine.detect.runner import Detector
-from packer.engine.extract.model import ExtractTarget
 from packer.engine.extract.service import ExtractionService
 from packer.engine.pack.packer import Packer
 from packer.engine.sandbox.pipeline import ScanPipeline
 from packer.workers.celery_app import app
-from packer.workers.io import materialize_repo
+from packer.workers.io import load_extraction, materialize_repo
 from packer.workers.runner import EngineCall, run_engine_job
 
 
-def _run(job_id: str, engine_call: EngineCall) -> None:
+def _run(job_id: str, engine_call: EngineCall, *, include_sandbox: bool = False) -> None:
     """Shared plumbing: build production repos/ports/redis from Hydra, then run the
     ONE lifecycle wrapper. The four tasks stay one-liners over this."""
     cfg = compose_config()
-    ports = assemble_ports(cfg)
+    ports = assemble_ports(cfg, include_sandbox=include_sandbox)
     factory = sessionmaker(
         create_engine(cfg.db.dsn, future=True), expire_on_commit=False, future=True
     )
@@ -64,7 +62,7 @@ def detect_task(job_id: str, spec: dict[str, Any]) -> None:
     _run(
         job_id,
         lambda ports, pr: Detector().detect(
-            ModelRef.parse(spec["model_ref"]), cfg.engine.detect, ports
+            resolve_model_ref(spec["model_ref"], store=ports.store), cfg.engine.detect, ports
         ),
     )
 
@@ -74,9 +72,8 @@ def extract_task(job_id: str, spec: dict[str, Any]) -> None:
     _run(
         job_id,
         lambda ports, pr: ExtractionService().extract(
-            ExtractTarget(
-                model_ref=ModelRef.parse(str(spec["target"])),
-                pak_path=Path(str(spec["artifact_id"])) if spec.get("artifact_id") else None,
+            resolve_extract_target(
+                str(spec["target"]), artifact_id=spec.get("artifact_id"), store=ports.store
             )
         ),
     )
@@ -85,9 +82,15 @@ def extract_task(job_id: str, spec: dict[str, Any]) -> None:
 @app.task(name="scan.run", queue="default")
 def scan_task(job_id: str, spec: dict[str, Any]) -> None:
     cfg = compose_config()
+    target = str(spec["target"])
     _run(
         job_id,
         lambda ports, pr: ScanPipeline().run(
-            ExtractTarget(model_ref=ModelRef.parse(str(spec["target"]))), cfg.engine, ports
+            load_extraction(ports.store, target)
+            if target.startswith("extraction:")
+            else resolve_extract_target(target, store=ports.store),
+            cfg.engine,
+            ports,
         ),
+        include_sandbox=True,
     )

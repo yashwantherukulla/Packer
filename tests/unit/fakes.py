@@ -216,11 +216,20 @@ class StubStore:
     """Store stand-in: open_pak returns a stub bundle (pack-path persistence branch)
     and put_blob echoes the key back (upload path)."""
 
+    def __init__(self) -> None:
+        self._blobs: dict[str, bytes] = {}
+
     def open_pak(self, artifact_id: str) -> _StubBundle:
         return _StubBundle()
 
     def put_blob(self, key: str, data: bytes) -> str:
+        self._blobs[key] = data
         return key
+
+    def open_blob(self, key: str):
+        from io import BytesIO
+
+        return BytesIO(self._blobs[key])
 
 
 class FakeEnginePorts:

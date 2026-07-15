@@ -3,6 +3,7 @@ from __future__ import annotations
 from typing import Protocol, cast
 
 from packer.engine.common.registries import SCANNER_REGISTRY
+import packer.engine.sandbox.static  # noqa: F401  (self-registration)
 from packer.engine.sandbox.fileset import FileSet
 from packer.engine.sandbox.findings import Finding
 from packer.engine.sandbox.policy import SandboxPolicy
@@ -97,6 +98,10 @@ class StaticAnalyzer:
     Orchestration only — knows no concrete scanner (open/closed, SYSTEM-DESIGN §3.4)."""
 
     def scan(self, files: FileSet, enabled: list[str]) -> list[Finding]:
+        # Make the self-registration side effect explicit on the hot path so the
+        # registry cannot be empty if a worker imports this module in an odd order.
+        import packer.engine.sandbox.static  # noqa: F401
+
         findings: list[Finding] = []
         for name in enabled:
             scanner = cast(_Scanner, SCANNER_REGISTRY.create(name))  # ConfigError on unknown name

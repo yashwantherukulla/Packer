@@ -44,6 +44,7 @@ export function PackResultCard({
       <div className="mt-3 flex flex-wrap gap-2">
         <a
           href={downloadHref}
+          download
           className="inline-block rounded bg-blue-600 px-3 py-1.5 text-white"
           data-testid="download"
         >

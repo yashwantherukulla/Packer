@@ -2,6 +2,14 @@ from omegaconf import OmegaConf
 
 from packer.engine.common.assembler import EnginePorts, assemble_ports
 from packer.engine.common.config_schema import TinyDecoderCfg, compose_config
+from packer.engine.common.registries import SANDBOX_REGISTRY
+from packer.engine.common.stores.filesystem import FilesystemArtifactStore  # registers "filesystem"
+
+
+@SANDBOX_REGISTRY.register("fake_sandbox_common")
+class _FakeSandboxCommon:
+    def run(self, unit, policy):  # pragma: no cover - not executed in this test
+        raise NotImplementedError
 
 
 def test_defaults_compose():
@@ -26,3 +34,14 @@ def test_assembler_wiring_path_is_null_without_adapters():
     assert ports.store is None
     assert ports.sandbox is None
     assert ports.loader is None
+
+
+def test_assembler_accepts_extract_sandbox_runner_shape(tmp_path):
+    cfg = OmegaConf.create(
+        {
+            "store": {"name": "filesystem", "params": {"root": str(tmp_path)}},
+            "extract": {"sandbox_runner": "fake_sandbox_common"},
+        }
+    )
+    ports = assemble_ports(cfg, include_sandbox=True)
+    assert ports.sandbox is not None

@@ -40,7 +40,7 @@ class DockerSandboxRunner:
             raise SandboxError(
                 f"unsupported sandbox lang: {unit.lang}", context={"lang": unit.lang}
             )
-        target = f"{policy.tmpfs_dir}/{unit.filename.replace('/', '_')}"
+        source = unit.data.decode("utf-8", "replace")
         command = [
             "strace",
             "-f",
@@ -48,7 +48,8 @@ class DockerSandboxRunner:
             "-o",
             f"{policy.tmpfs_dir}/{_TRACE}",
             *interp,
-            target,
+            "-c",
+            source,
             *unit.argv,
         ]
         started = time.monotonic()
@@ -72,7 +73,6 @@ class DockerSandboxRunner:
                 working_dir=policy.tmpfs_dir,
                 detach=True,
             )
-            container.put_archive(policy.tmpfs_dir, _tar_bytes(target.rsplit("/", 1)[1], unit.data))
             container.start()
             timed_out = False
             exit_code: int | None
@@ -104,17 +104,6 @@ class DockerSandboxRunner:
             if container is not None:
                 with contextlib.suppress(DockerException):
                     container.remove(force=True)
-
-
-def _tar_bytes(name: str, data: bytes) -> bytes:
-    buf = io.BytesIO()
-    with tarfile.open(fileobj=buf, mode="w") as tar:
-        info = tarfile.TarInfo(name=name)
-        info.size = len(data)
-        tar.addfile(info, io.BytesIO(data))
-    return buf.getvalue()
-
-
 def _parse_trace(
     container: Any, policy: SandboxPolicy
 ) -> tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...]]:

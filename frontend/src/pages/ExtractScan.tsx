@@ -1,4 +1,5 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { useSearchParams } from "react-router-dom";
 import { JobFailureCard } from "@/components/JobFailureCard";
 import { JobProgress } from "@/components/JobProgress";
 import { ReportView } from "@/components/ReportView";
@@ -8,7 +9,9 @@ import { useJobProgress } from "@/hooks/useJobProgress";
 import { isTerminalStatus, parseResultRef } from "@/lib/result-ref";
 
 export function ExtractScan() {
-  const [modelRef, setModelRef] = useState("");
+  const [searchParams] = useSearchParams();
+  const presetModelRef = searchParams.get("model_ref") ?? "";
+  const [modelRef, setModelRef] = useState(presetModelRef);
   const submit = useSubmitScan();
   const jobId = submit.data?.id ?? null;
   const progress = useJobProgress(jobId ?? "");
@@ -24,10 +27,16 @@ export function ExtractScan() {
     ?.mode;
   const banner =
     mode === "exact"
-      ? "Reconstruction: byte-exact ✓"
+      ? "Reconstruction: byte-exact"
       : mode
         ? "Reconstruction: best-effort (blind)"
         : null;
+
+  useEffect(() => {
+    if (presetModelRef) {
+      setModelRef(presetModelRef);
+    }
+  }, [presetModelRef]);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
@@ -36,7 +45,7 @@ export function ExtractScan() {
         <input
           value={modelRef}
           onChange={(e) => setModelRef(e.target.value)}
-          placeholder="model_ref (add an artifact id for exact mode)"
+          placeholder="HF id, artifact id, or artifact:&lt;id&gt;"
           data-testid="model-ref"
           className="flex-1 rounded border px-3 py-2"
         />
@@ -49,6 +58,11 @@ export function ExtractScan() {
           Run
         </button>
       </div>
+      <p className="text-sm text-slate-600 dark:text-slate-300">
+        Exact extraction and scan use the stored <code>.pak</code> when you pass{" "}
+        <code>artifact:&lt;id&gt;</code> or a job artifact id. Other model refs fall back to
+        best-effort reconstruction.
+      </p>
       {jobId && active && (
         <JobProgress
           step={progress.event?.step ?? "queued"}

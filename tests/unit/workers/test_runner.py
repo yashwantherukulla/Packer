@@ -68,3 +68,19 @@ def test_progress_is_bound_and_published():
     d["jobs"]._rows["j1"].type = "pack"
     run_engine_job("j1", call, **d)
     assert d["redis_client"].published  # progress reached Redis
+
+
+def test_extract_persists_short_extraction_ref():
+    from packer.engine.extract.model import Extraction
+
+    d = _deps()
+    d["jobs"]._rows["j1"].type = "extract"
+
+    def call(ports, pr):
+        return Extraction(files={"m.py": b"print(1)\n"}, confidence=1.0, confidence_class="exact")
+
+    run_engine_job("j1", call, **d)
+    row = d["jobs"].get("j1")
+    assert row.status == "succeeded"
+    assert row.result_ref == "extraction:j1"
+    assert "extractions/j1.json" in d["ports"].store._blobs

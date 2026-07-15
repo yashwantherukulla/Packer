@@ -49,6 +49,11 @@ export function Detect() {
           Detect
         </button>
       </div>
+      <p className="text-sm text-slate-600 dark:text-slate-300">
+        HF ids are downloaded from the Hugging Face Hub, local paths are read from disk, and
+        <code>artifact:&lt;id&gt;</code> resolves to the stored <code>.pak</code> for exact
+        artifact-based detection.
+      </p>
       {jobId && active && (
         <JobProgress
           step={progress.event?.step ?? "queued"}

@@ -5,6 +5,7 @@ from typing import Any
 from packer.engine.common.errors import ScanError
 from packer.engine.common.progress import null_progress
 from packer.engine.extract.service import ExtractionService
+from packer.engine.extract.model import Extraction
 from packer.engine.report.builders import ScanReportBuilder
 from packer.engine.report.model import Report
 from packer.engine.sandbox.analyzers import DynamicAnalyzer, StaticAnalyzer
@@ -26,7 +27,7 @@ class ScanPipeline:
 
     def run(self, target: Any, cfg: Any, ports: Any, progress: Any = null_progress) -> Report:
         progress(step="extract", pct=0.1, detail="reconstructing code")
-        extraction = self._extract.extract(target)
+        extraction = target if isinstance(target, Extraction) else self._extract.extract(target)
         fileset = FileSet.from_extraction(extraction)
 
         progress(step="static", pct=0.4, detail="static scanners")

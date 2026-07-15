@@ -23,6 +23,7 @@ test("shows honest original/gzip/artifact sizes + download link", () => {
   expect(card).toHaveTextContent("46.9 KB"); // gzip
   expect(card).toHaveTextContent("6.7 MB"); // artifact
   expect(screen.getByTestId("download")).toHaveAttribute("href", "/api/artifacts/a1?download=1");
+  expect(screen.getByTestId("download")).toHaveAttribute("download");
   expect(screen.getByTestId("detect-from-pack")).toHaveAttribute(
     "href",
     "/detect?model_ref=artifact%3Aa1",

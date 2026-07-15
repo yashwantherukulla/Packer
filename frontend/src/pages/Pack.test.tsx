@@ -5,6 +5,11 @@ import { Pack } from "@/pages/Pack";
 import type { ProgressView } from "@/hooks/useJobProgress";
 
 const mutate = vi.fn();
+const submitMock: { data: { id: string } | undefined; isError: boolean; error: Error | null } = {
+  data: { id: "job-1" },
+  isError: false,
+  error: null,
+};
 const progressMock: {
   event: ProgressView | null;
   connected: boolean;
@@ -22,7 +27,7 @@ const jobMock: {
 const artifactMock = { data: undefined };
 
 vi.mock("@/hooks/useSubmit", () => ({
-  useSubmitPack: () => ({ mutate, data: { id: "job-1" }, isError: false }),
+  useSubmitPack: () => ({ mutate, ...submitMock }),
 }));
 vi.mock("@/hooks/useJobProgress", () => ({
   useJobProgress: () => progressMock,
@@ -39,6 +44,9 @@ afterEach(() => {
   progressMock.status = "running";
   jobMock.data = { status: "running", error: null, error_code: null, result_ref: null };
   artifactMock.data = undefined;
+  submitMock.data = { id: "job-1" };
+  submitMock.isError = false;
+  submitMock.error = null;
 });
 
 test("uploading a zip submits a pack job and streams progress", async () => {
@@ -66,4 +74,13 @@ test("renders the pack error instead of hanging on progress after failure", () =
   expect(screen.getByRole("alert")).toHaveTextContent(/job failed/i);
   expect(screen.getByRole("alert")).toHaveTextContent(/context_len 1024/i);
   expect(screen.queryByTestId("job-progress")).not.toBeInTheDocument();
+});
+
+test("renders the submission error message when upload fails before queueing", () => {
+  submitMock.isError = true;
+  submitMock.error = new Error("multipart upload rejected");
+
+  render(<Pack />);
+  expect(screen.getByRole("alert")).toHaveTextContent(/submission failed/i);
+  expect(screen.getByRole("alert")).toHaveTextContent(/multipart upload rejected/i);
 });

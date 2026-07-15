@@ -10,7 +10,7 @@ WORKDIR /app
 
 # 1) deps only (cache layer) — no project, no dev group
 COPY pyproject.toml uv.lock ./
-RUN --mount=type=cache,target=/root/.cache/uv \
+RUN --mount=type=cache,id=packer-api-uv,target=/root/.cache/uv,sharing=locked \
     uv venv "$VIRTUAL_ENV" \
  && uv sync --frozen --no-dev --no-install-project
 
@@ -22,7 +22,7 @@ COPY conf ./conf
 COPY alembic ./alembic
 COPY alembic.ini ./
 COPY README.md ./
-RUN --mount=type=cache,target=/root/.cache/uv uv pip install --no-deps -e .
+RUN --mount=type=cache,id=packer-api-uv,target=/root/.cache/uv,sharing=locked uv pip install --no-deps -e .
 
 EXPOSE 8000
 # migrate-on-startup (ADR-014), then serve.

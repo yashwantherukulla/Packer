@@ -20,7 +20,7 @@ WORKDIR /app
 #    The grep drops torch and every nvidia-*/cuda-*/triton wheel; `--torch-backend=cpu`
 #    then pulls torch==<locked>+cpu (a ~10-package tree, no CUDA) from the PyTorch index.
 COPY pyproject.toml uv.lock ./
-RUN --mount=type=cache,target=/root/.cache/uv \
+RUN --mount=type=cache,id=packer-api-uv,target=/root/.cache/uv,sharing=locked \
     uv venv "$VIRTUAL_ENV" \
  && uv export --frozen --no-dev --no-emit-project --no-hashes -o /tmp/req.txt \
  && grep -vE '^(cuda-|nvidia-|triton==|torch==)' /tmp/req.txt > /tmp/req.cpu.txt \
@@ -37,7 +37,7 @@ COPY conf ./conf
 COPY alembic ./alembic
 COPY alembic.ini ./
 COPY README.md ./
-RUN --mount=type=cache,target=/root/.cache/uv uv pip install --no-deps -e .
+RUN --mount=type=cache,id=packer-api-uv,target=/root/.cache/uv,sharing=locked uv pip install --no-deps -e .
 
 EXPOSE 8000
 # migrate-on-startup (ADR-014), then serve (create_app factory — see docker/api.Dockerfile).
