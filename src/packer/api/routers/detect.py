@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from typing import Any
 
 from fastapi import APIRouter, Depends
@@ -18,6 +19,10 @@ def submit_detect(
     svc: JobService = Depends(deps.get_job_service),
     broker: Any = Depends(deps.get_broker),
 ) -> JobRecord:
-    job = svc.create(type="detect", input_ref=req.model_ref, input_hash=req.model_ref)
+    job = svc.create(
+        type="detect",
+        input_ref=req.model_ref,
+        input_hash=hashlib.sha256(req.model_ref.encode("utf-8")).hexdigest(),
+    )
     broker.send_task("detect.run", args=[job.id, {"model_ref": req.model_ref}], queue="default")
     return job

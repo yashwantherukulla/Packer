@@ -54,6 +54,8 @@ class DockerSandboxRunner:
         ]
         started = time.monotonic()
         container = None
+        uid, _, gid = policy.user.partition(":")
+        tmpfs_opts = f"size={policy.tmpfs_size},uid={uid},gid={gid or uid},mode=1777"
         try:
             container = self._client.containers.create(
                 image=policy.image,
@@ -69,7 +71,7 @@ class DockerSandboxRunner:
                     for opt in policy.security_opt
                 ],  # no-new-privileges:true
                 user=policy.user,  # non-root uid:gid
-                tmpfs={policy.tmpfs_dir: f"size={policy.tmpfs_size}"},
+                tmpfs={policy.tmpfs_dir: tmpfs_opts},
                 working_dir=policy.tmpfs_dir,
                 detach=True,
             )

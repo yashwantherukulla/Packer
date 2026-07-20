@@ -20,4 +20,5 @@ jobs:
       - uses: astral-sh/setup-uv@v3
         with: { enable-cache: true }
       - run: uv sync
+      - run: docker build -t packer-sandbox:latest docker/sandbox
       - run: uv run pytest tests/integration -m integration

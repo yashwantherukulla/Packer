@@ -60,7 +60,7 @@ class _CeleryBroker:
     def send_task(self, name: str, args: list[Any], queue: str) -> None:
         from packer.workers.celery_app import app
 
-        app.send_task(name, args=args, queue=queue)
+        app.signature(name, args=args).apply_async(queue=queue)
 
 
 def get_broker() -> Any:
