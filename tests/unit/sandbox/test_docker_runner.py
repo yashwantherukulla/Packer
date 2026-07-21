@@ -12,9 +12,6 @@ class _FakeContainer:
         self.kwargs = kwargs
         self.removed = False
 
-    def put_archive(self, path, data):
-        return True
-
     def start(self):
         return None
 
@@ -58,6 +55,7 @@ def test_run_applies_hardened_flags():
     pol = SandboxPolicy(image="packer-sandbox:latest")
     res = runner.run(ExecUnit(filename="a.py", data=b"print('hello')", lang="python"), pol)
     kw = client.containers.last.kwargs
+    cmd = kw["command"]
     assert kw["network_mode"] == "none"
     assert kw["read_only"] is True
     assert kw["cap_drop"] == ["ALL"]
@@ -65,6 +63,12 @@ def test_run_applies_hardened_flags():
     assert kw["user"] == "1000:1000"
     assert kw["mem_limit"] == "256m"
     assert "/scratch" in kw["tmpfs"]
+    assert "uid=1000" in kw["tmpfs"]["/scratch"]
+    assert "gid=1000" in kw["tmpfs"]["/scratch"]
+    assert "mode=1777" in kw["tmpfs"]["/scratch"]
+    assert cmd[:6] == ["strace", "-f", "-qq", "-o", "/scratch/trace.log", "python3"]
+    assert cmd[6] == "-c"
+    assert cmd[7] == "print('hello')"
     assert res.exit_code == 0 and res.timed_out is False
     assert "hello" in res.stdout
 

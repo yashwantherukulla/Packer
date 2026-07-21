@@ -17,6 +17,7 @@ from packer.engine.sandbox.runner import ExecUnit, SandboxResult
 _TRACE = "trace.log"
 _LANG_CMD = {"python": ["python3"]}
 _NET_SYSCALLS = ("connect", "socket", "sendto", "sendmsg", "bind", "getaddrinfo")
+_TMPFS_OPTIONS = "uid=1000,gid=1000,mode=1777"
 
 
 @SANDBOX_REGISTRY.register("docker")
@@ -71,7 +72,7 @@ class DockerSandboxRunner:
                     for opt in policy.security_opt
                 ],  # no-new-privileges:true
                 user=policy.user,  # non-root uid:gid
-                tmpfs={policy.tmpfs_dir: tmpfs_opts},
+                tmpfs={policy.tmpfs_dir: f"size={policy.tmpfs_size},{_TMPFS_OPTIONS}"},
                 working_dir=policy.tmpfs_dir,
                 detach=True,
             )
@@ -106,6 +107,8 @@ class DockerSandboxRunner:
             if container is not None:
                 with contextlib.suppress(DockerException):
                     container.remove(force=True)
+
+
 def _parse_trace(
     container: Any, policy: SandboxPolicy
 ) -> tuple[tuple[str, ...], tuple[str, ...], tuple[str, ...]]:

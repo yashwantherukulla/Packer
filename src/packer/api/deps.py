@@ -60,7 +60,13 @@ class _CeleryBroker:
     def send_task(self, name: str, args: list[Any], queue: str) -> None:
         from packer.workers.celery_app import app
 
-        app.signature(name, args=args).apply_async(queue=queue)
+        if app.conf.task_always_eager:
+            task = app.tasks.get(name)
+            if task is None:
+                raise LookupError(f"celery task not registered: {name}")
+            task.apply_async(args=args, queue=queue)
+            return
+        app.send_task(name, args=args, queue=queue)
 
 
 def get_broker() -> Any:

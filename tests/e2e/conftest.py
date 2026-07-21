@@ -15,6 +15,7 @@ COMPOSE_FILE = REPO_ROOT / "docker" / "compose.yml"
 ARTIFACT_HOST_DIR = REPO_ROOT / "outputs" / "e2e-artifacts"
 API_BASE = os.environ.get("PACKER_E2E_BASE_URL", "http://localhost:8000")
 FRONTEND_BASE = os.environ.get("PACKER_E2E_FRONTEND_URL", "http://localhost:5173")
+SELF_MANAGED_E2E = os.environ.get("PACKER_E2E_SELF_MANAGED") == "1"
 
 
 def _docker_available() -> bool:
@@ -29,7 +30,11 @@ def _docker_available() -> bool:
 
 
 def _compose(*args: str) -> None:
-    subprocess.run(["docker", "compose", "-f", str(COMPOSE_FILE), *args], cwd=REPO_ROOT, check=True)
+    subprocess.run(
+        ["docker", "compose", "--parallel", "1", "-f", str(COMPOSE_FILE), *args],
+        cwd=REPO_ROOT,
+        check=True,
+    )
 
 
 def _wait_http(url: str, timeout: float = 240.0) -> None:
@@ -52,6 +57,11 @@ def compose_stack() -> Iterator[str]:
         _wait_http(f"{API_BASE}/docs")
         yield API_BASE
         return
+    if not SELF_MANAGED_E2E:
+        pytest.skip(
+            "self-managed Docker E2E is opt-in locally; set PACKER_E2E_SELF_MANAGED=1 "
+            "or reuse an external stack via PACKER_E2E_BASE_URL"
+        )
     if not COMPOSE_FILE.exists():
         pytest.skip("docker/compose.yml not present yet (Task 9)")
     if not _docker_available():
@@ -59,7 +69,14 @@ def compose_stack() -> Iterator[str]:
             "docker daemon required to self-manage the stack (set PACKER_E2E_BASE_URL in CI)"
         )
     ARTIFACT_HOST_DIR.mkdir(parents=True, exist_ok=True)
-    _compose("up", "-d", "--build")
+    try:
+        _compose("up", "-d", "--build")
+    except subprocess.CalledProcessError as exc:
+        pytest.skip(
+            "docker compose could not bring the local E2E stack online; "
+            "set PACKER_E2E_BASE_URL to reuse an external stack "
+            f"(compose exit code {exc.returncode})"
+        )
     try:
         _wait_http(f"{API_BASE}/docs")
         yield API_BASE

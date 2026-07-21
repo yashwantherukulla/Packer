@@ -32,8 +32,9 @@ def _download_client(tmp_path: Path):
     app = create_app()
     artifacts = InMemoryArtifactRepository()
     artifact_path = tmp_path / "store" / "pak" / "a1"
-    artifact_path.parent.mkdir(parents=True, exist_ok=True)
-    artifact_path.write_bytes(b"pak-bytes")
+    artifact_path.mkdir(parents=True, exist_ok=True)
+    (artifact_path / "model.safetensors").write_bytes(b"pak-bytes")
+    (artifact_path / "manifest.json").write_text("{}", encoding="utf-8")
     artifacts.insert(id="a1", job_id="j1", pak_path="a1", manifest={}, metrics={})
 
     class _Store:
@@ -69,7 +70,8 @@ def test_get_artifact_download_streams_file(tmp_path: Path):
     client = _download_client(tmp_path)
     resp = client.get("/artifacts/a1", params={"download": "1"})
     assert resp.status_code == 200
-    assert resp.headers["content-disposition"].startswith("attachment; filename=a1.pak")
+    assert resp.headers["content-disposition"].startswith("attachment; filename=")
+    assert "a1.pak" in resp.headers["content-disposition"]
     with tarfile.open(fileobj=io.BytesIO(resp.content), mode="r") as tar:
         names = tar.getnames()
     assert "a1/model.safetensors" in names

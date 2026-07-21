@@ -21,7 +21,9 @@ def _docker_available() -> bool:
     try:
         import docker
 
-        docker.from_env().ping()
+        client = docker.from_env()
+        client.ping()
+        client.images.get("packer-sandbox:latest")
         return True
     except Exception:
         return False

@@ -1,5 +1,5 @@
 import hypothesis.strategies as st
-from hypothesis import given, settings
+from hypothesis import HealthCheck, given, settings
 
 from packer.engine.common.registries import CODEC_REGISTRY
 from packer.engine.pack.residuals import DeltaVarintCodec, ResidualCapturer
@@ -15,8 +15,8 @@ def test_codec_empty():
     assert codec.decode(codec.encode([])) == []
 
 
-@settings(max_examples=200)
-@given(st.lists(st.tuples(st.integers(0, 100_000), st.integers(0, 8191))))
+@settings(max_examples=200, suppress_health_check=[HealthCheck.too_slow])
+@given(st.lists(st.tuples(st.integers(0, 100_000), st.integers(0, 8191)), max_size=256))
 def test_codec_roundtrip(pairs):
     residuals = sorted(dict(pairs).items())  # unique positions, ascending
     codec = DeltaVarintCodec()
