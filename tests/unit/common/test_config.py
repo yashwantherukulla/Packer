@@ -3,7 +3,6 @@ from omegaconf import OmegaConf
 from packer.engine.common.assembler import EnginePorts, assemble_ports
 from packer.engine.common.config_schema import TinyDecoderCfg, compose_config
 from packer.engine.common.registries import SANDBOX_REGISTRY
-from packer.engine.common.stores.filesystem import FilesystemArtifactStore  # registers "filesystem"
 
 
 @SANDBOX_REGISTRY.register("fake_sandbox_common")
