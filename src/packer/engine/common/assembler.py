@@ -33,7 +33,11 @@ def assemble_ports(cfg: DictConfig, *, include_sandbox: bool = False) -> EngineP
             runner_name = str(cfg.sandbox.runner)
         elif "extract" in cfg and cfg.extract.get("sandbox_runner"):
             runner_name = str(cfg.extract.sandbox_runner)
-        elif "engine" in cfg and cfg.engine.get("extract") and cfg.engine.extract.get("sandbox_runner"):
+        elif (
+            "engine" in cfg
+            and cfg.engine.get("extract")
+            and cfg.engine.extract.get("sandbox_runner")
+        ):
             runner_name = str(cfg.engine.extract.sandbox_runner)
     if runner_name:
         sandbox = SANDBOX_REGISTRY.create(runner_name)

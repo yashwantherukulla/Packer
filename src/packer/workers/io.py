@@ -9,7 +9,6 @@ from typing import Any
 
 from packer.engine.extract.model import Extraction
 
-
 _EXTRACTION_PREFIX = "extractions/"
 
 
@@ -28,7 +27,9 @@ def persist_extraction(store: Any, job_id: str, extraction: Extraction) -> str:
     if not hasattr(store, "put_blob"):
         raise TypeError("store does not support blob persistence for extractions")
     payload = {
-        "files": {path: base64.b64encode(data).decode("ascii") for path, data in extraction.files.items()},
+        "files": {
+            path: base64.b64encode(data).decode("ascii") for path, data in extraction.files.items()
+        },
         "confidence": extraction.confidence,
         "confidence_class": extraction.confidence_class,
         "notes": list(extraction.notes),
@@ -38,7 +39,11 @@ def persist_extraction(store: Any, job_id: str, extraction: Extraction) -> str:
 
 
 def load_extraction(store: Any, extraction_id: str) -> Extraction:
-    raw_id = extraction_id.split("extraction:", 1)[1] if extraction_id.startswith("extraction:") else extraction_id
+    raw_id = (
+        extraction_id.split("extraction:", 1)[1]
+        if extraction_id.startswith("extraction:")
+        else extraction_id
+    )
     key = _EXTRACTION_PREFIX + f"{raw_id}.json"
     with store.open_blob(key) as fh:
         payload = json.loads(fh.read().decode("utf-8"))

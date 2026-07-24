@@ -43,8 +43,8 @@ def get_artifact(
 def _write_pak_archive(path: Path, artifact_id: str) -> str:
     """Serialize the dev-directory .pak into a transport tarball."""
 
-    tmp = tempfile.NamedTemporaryFile(prefix=f"{artifact_id}-", suffix=".pak", delete=False)
-    tmp.close()
-    with tarfile.open(tmp.name, mode="w") as tar:
+    fd, archive_path = tempfile.mkstemp(prefix=f"{artifact_id}-", suffix=".pak")
+    os.close(fd)
+    with tarfile.open(archive_path, mode="w") as tar:
         tar.add(path, arcname=artifact_id)
-    return tmp.name
+    return archive_path

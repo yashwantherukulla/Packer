@@ -7,13 +7,13 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
 from packer.api.composition import assemble_ports
-from packer.api.model_refs import resolve_extract_target, resolve_model_ref
 from packer.api.db.base import session_scope
 from packer.api.db.repositories import (
     SqlArtifactRepository,
     SqlJobRepository,
     SqlReportRepository,
 )
+from packer.api.model_refs import resolve_extract_target, resolve_model_ref
 from packer.engine.common.config_schema import compose_config
 from packer.engine.detect.runner import Detector
 from packer.engine.extract.service import ExtractionService

@@ -55,8 +55,6 @@ class DockerSandboxRunner:
         ]
         started = time.monotonic()
         container = None
-        uid, _, gid = policy.user.partition(":")
-        tmpfs_opts = f"size={policy.tmpfs_size},uid={uid},gid={gid or uid},mode=1777"
         try:
             container = self._client.containers.create(
                 image=policy.image,

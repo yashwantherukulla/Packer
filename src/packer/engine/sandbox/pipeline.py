@@ -4,8 +4,8 @@ from typing import Any
 
 from packer.engine.common.errors import ScanError
 from packer.engine.common.progress import null_progress
-from packer.engine.extract.service import ExtractionService
 from packer.engine.extract.model import Extraction
+from packer.engine.extract.service import ExtractionService
 from packer.engine.report.builders import ScanReportBuilder
 from packer.engine.report.model import Report
 from packer.engine.sandbox.analyzers import DynamicAnalyzer, StaticAnalyzer

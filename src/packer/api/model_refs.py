@@ -1,18 +1,12 @@
 from __future__ import annotations
 
-from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 from packer.engine.common.types import ModelRef
+from packer.engine.extract.model import ExtractTarget
 
 _ARTIFACT_PREFIX = "artifact:"
-
-
-@dataclass(frozen=True)
-class ExtractTargetRef:
-    model_ref: ModelRef
-    pak_path: Path | None = None
 
 
 def resolve_model_ref(raw: str, *, store: Any | None = None) -> ModelRef:
@@ -55,12 +49,12 @@ def resolve_extract_target(
     *,
     artifact_id: str | None = None,
     store: Any | None = None,
-) -> ExtractTargetRef:
+) -> ExtractTarget:
     model_ref = resolve_model_ref(target, store=store)
     pak_path = resolve_pak_path(artifact_id, store=store) if artifact_id else None
     if pak_path is None and model_ref.kind == "pak":
         pak_path = Path(model_ref.value)
-    return ExtractTargetRef(model_ref=model_ref, pak_path=pak_path)
+    return ExtractTarget(model_ref=model_ref, pak_path=pak_path)
 
 
 def _artifact_path(artifact_id: str, *, store: Any | None = None) -> Path:
