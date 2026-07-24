@@ -33,14 +33,13 @@ def test_full_chain_pack_detect_extract_scan(api_client: httpx.Client, tmp_path)
         pack_job = (
             api_client.post(
                 "/pack",
-                files={"repo": ("toy_repo.zip", fh, "application/zip")},
-                data={"overrides": httpx.QueryParams(PACK_OVERRIDES).__str__()},
+                files={"file": ("toy_repo.zip", fh, "application/zip")},
             )
             .raise_for_status()
             .json()
         )
     pack = wait_for_job(api_client, pack_job["id"])
-    artifact_id = pack["result_ref"]
+    artifact_id = pack["result_ref"].split("artifact:")[1]
     artifact = api_client.get(f"/artifacts/{artifact_id}").raise_for_status().json()
     assert artifact["manifest_json"]["metrics"]["lossless"] is True
 
@@ -51,7 +50,8 @@ def test_full_chain_pack_detect_extract_scan(api_client: httpx.Client, tmp_path)
         .json()
     )
     detect = wait_for_job(api_client, detect_job["id"])
-    detect_report = api_client.get(f"/reports/{detect['result_ref']}").raise_for_status().json()
+    detect_report_id = detect["result_ref"].split("report:")[1]
+    detect_report = api_client.get(f"/reports/{detect_report_id}").raise_for_status().json()
     assert detect_report["kind"] == "detect"
     assert detect_report["verdict"]["label"] == DETECT_VERDICT
     assert detect_report["verdict"]["confidence"] > 0.0
@@ -87,9 +87,14 @@ def test_full_chain_pack_detect_extract_scan(api_client: httpx.Client, tmp_path)
         .json()
     )
     scan = wait_for_job(api_client, scan_job["id"])
-    scan_report = api_client.get(f"/reports/{scan['result_ref']}").raise_for_status().json()
+    scan_report_id = scan["result_ref"].split("report:")[1]
+    scan_report = api_client.get(f"/reports/{scan_report_id}").raise_for_status().json()
     assert scan_report["kind"] == "scan"
     for filename, expected in FILE_LABELS.items():
         assert _file_label(scan_report, filename) == expected
     # the malicious unit's blocked network attempt must be recorded (dynamic pass)
     assert scan_report["evidence"]["per_file"]  # non-empty
+
+
+def test_pack_override_fixture_is_declared_for_fast_cpu_runs():
+    assert PACK_OVERRIDES == {"engine/pack": "e2e_tiny"}

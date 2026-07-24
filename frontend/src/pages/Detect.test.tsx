@@ -6,11 +6,12 @@ import { Detect } from "@/pages/Detect";
 import type { Report } from "@/api/types";
 
 const mutate = vi.fn();
+const submitMock: { data?: { id: string } } = { data: { id: "j1" } };
 const progressMock = { event: null, connected: true, status: "succeeded" };
 const jobMock = { data: { status: "succeeded", result_ref: "report:r1", error: null, error_code: null } };
 
 vi.mock("@/hooks/useSubmit", () => ({
-  useSubmitDetect: () => ({ mutate, data: { id: "j1" } }),
+  useSubmitDetect: () => ({ mutate, ...submitMock }),
 }));
 vi.mock("@/hooks/useJobProgress", () => ({
   useJobProgress: () => progressMock,
@@ -29,7 +30,11 @@ vi.mock("@/hooks/useJob", () => ({
   }),
 }));
 
-afterEach(() => vi.clearAllMocks());
+afterEach(() => {
+  vi.clearAllMocks();
+  submitMock.data = { id: "j1" };
+  window.sessionStorage.clear();
+});
 
 test("submits a model_ref and renders the detect report", async () => {
   render(
@@ -50,4 +55,17 @@ test("prefills the model_ref from the detect link query", () => {
     </MemoryRouter>,
   );
   expect(screen.getByTestId("model-ref")).toHaveValue("artifact:a1");
+});
+
+test("restores the last detect job for the current browser session", () => {
+  submitMock.data = undefined;
+  window.sessionStorage.setItem("detect:last-job-id", "j-restored");
+
+  render(
+    <MemoryRouter initialEntries={["/detect"]}>
+      <Detect />
+    </MemoryRouter>,
+  );
+
+  expect(screen.getByTestId("report-detect")).toBeInTheDocument();
 });

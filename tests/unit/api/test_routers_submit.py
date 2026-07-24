@@ -36,3 +36,13 @@ def test_post_pack_uploads_and_routes_to_gpu():
 def test_scan_requires_exactly_one_target():
     client, _ = _client_with_fakes(FakeBroker())
     assert client.post("/scan", json={}).status_code == 422
+
+
+def test_post_scan_with_extraction_id_enqueues_default_queue():
+    broker = FakeBroker()
+    client, _ = _client_with_fakes(broker)
+    resp = client.post("/scan", json={"extraction_id": "extraction:e1"})
+    assert resp.status_code == 202
+    assert broker.sent[0].name == "scan.run"
+    assert broker.sent[0].queue == "default"
+    assert broker.sent[0].args[1]["target"] == "extraction:e1"

@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useJobs } from "@/hooks/useJob";
+import { formatTimestamp } from "@/lib/datetime";
 
 const STATUSES = ["", "queued", "running", "succeeded", "failed"];
 
@@ -28,6 +29,9 @@ export function Jobs() {
             <th>id</th>
             <th>type</th>
             <th>status</th>
+            <th>created</th>
+            <th>finished</th>
+            <th>result</th>
           </tr>
         </thead>
         <tbody>
@@ -40,6 +44,9 @@ export function Jobs() {
               </td>
               <td>{j.type}</td>
               <td>{j.status}</td>
+              <td className="font-mono">{formatTimestamp(j.created_at)}</td>
+              <td className="font-mono">{formatTimestamp(j.finished_at)}</td>
+              <td className="font-mono">{j.result_ref ?? "pending"}</td>
             </tr>
           ))}
         </tbody>

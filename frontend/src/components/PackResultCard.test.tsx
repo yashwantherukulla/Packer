@@ -7,6 +7,7 @@ test("shows honest original/gzip/artifact sizes + download link", () => {
   render(
     <MemoryRouter>
       <PackResultCard
+        artifactId="a1"
         metrics={{
           original_bytes: 180_000,
           gzip_bytes: 48_000,
@@ -28,4 +29,5 @@ test("shows honest original/gzip/artifact sizes + download link", () => {
     "href",
     "/detect?model_ref=artifact%3Aa1",
   );
+  expect(screen.getByTestId("artifact-id")).toHaveValue("a1");
 });

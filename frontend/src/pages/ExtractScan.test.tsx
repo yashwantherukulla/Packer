@@ -1,4 +1,5 @@
 import { render, screen } from "@testing-library/react";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, expect, test, vi } from "vitest";
 import { ExtractScan } from "@/pages/ExtractScan";
 import type { Report } from "@/api/types";
@@ -29,7 +30,11 @@ vi.mock("@/hooks/useJob", () => ({
 afterEach(() => vi.clearAllMocks());
 
 test("renders the byte-exact banner and the scan report", () => {
-  render(<ExtractScan />);
+  render(
+    <MemoryRouter initialEntries={["/scan"]}>
+      <ExtractScan />
+    </MemoryRouter>,
+  );
   expect(screen.getByTestId("reconstruction")).toHaveTextContent(/byte-exact/i);
   expect(screen.getByTestId("report-scan")).toBeInTheDocument();
 });

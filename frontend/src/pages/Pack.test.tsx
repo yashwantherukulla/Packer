@@ -1,5 +1,6 @@
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { MemoryRouter } from "react-router-dom";
 import { afterEach, expect, test, vi } from "vitest";
 import { Pack } from "@/pages/Pack";
 import type { ProgressView } from "@/hooks/useJobProgress";
@@ -24,7 +25,7 @@ const jobMock: {
 } = {
   data: { status: "running", error: null, error_code: null, result_ref: null },
 };
-const artifactMock = { data: undefined };
+const artifactMock: { data: unknown } = { data: undefined };
 
 vi.mock("@/hooks/useSubmit", () => ({
   useSubmitPack: () => ({ mutate, ...submitMock }),
@@ -47,6 +48,7 @@ afterEach(() => {
   submitMock.data = { id: "job-1" };
   submitMock.isError = false;
   submitMock.error = null;
+  window.sessionStorage.clear();
 });
 
 test("uploading a zip submits a pack job and streams progress", async () => {
@@ -83,4 +85,34 @@ test("renders the submission error message when upload fails before queueing", (
   render(<Pack />);
   expect(screen.getByRole("alert")).toHaveTextContent(/submission failed/i);
   expect(screen.getByRole("alert")).toHaveTextContent(/multipart upload rejected/i);
+});
+
+test("restores the last pack job so the artifact id stays available", () => {
+  submitMock.data = undefined;
+  progressMock.event = null;
+  progressMock.connected = false;
+  progressMock.status = "succeeded";
+  jobMock.data = {
+    status: "succeeded",
+    error: null,
+    error_code: null,
+    result_ref: "artifact:a1",
+  };
+  artifactMock.data = {
+    id: "a1",
+    metrics_json: {
+      original_bytes: 180_000,
+      gzip_bytes: 48_000,
+      artifact_bytes: 7_050_000,
+      compression_ratio_vs_original: 39.2,
+    },
+  };
+  window.sessionStorage.setItem("pack:last-job-id", "job-restored");
+
+  render(
+    <MemoryRouter>
+      <Pack />
+    </MemoryRouter>,
+  );
+  expect(screen.getByTestId("artifact-id")).toHaveValue("a1");
 });

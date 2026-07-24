@@ -6,6 +6,7 @@ import { ReportView } from "@/components/ReportView";
 import { useJob, useReport } from "@/hooks/useJob";
 import { useSubmitDetect } from "@/hooks/useSubmit";
 import { useJobProgress } from "@/hooks/useJobProgress";
+import { useSessionJobId } from "@/hooks/useSessionJob";
 import { isTerminalStatus, parseResultRef } from "@/lib/result-ref";
 
 export function Detect() {
@@ -13,7 +14,7 @@ export function Detect() {
   const presetModelRef = searchParams.get("model_ref") ?? "";
   const [modelRef, setModelRef] = useState(presetModelRef);
   const submit = useSubmitDetect();
-  const jobId = submit.data?.id ?? null;
+  const { jobId } = useSessionJobId("detect:last-job-id", submit.data?.id);
   const progress = useJobProgress(jobId ?? "");
   const job = useJob(jobId ?? "");
   const status = job.data?.status ?? progress.status;

@@ -9,10 +9,12 @@ export type ArtifactMetrics = {
 };
 
 export function PackResultCard({
+  artifactId,
   metrics,
   downloadHref,
   detectHref,
 }: {
+  artifactId?: string;
   metrics: ArtifactMetrics;
   downloadHref: string;
   detectHref?: string;
@@ -40,6 +42,19 @@ export function PackResultCard({
           Artifact is {formatRatio(metrics.compression_ratio_vs_original)} the original — Packer is a
           memorization demo, not a compressor.
         </p>
+      )}
+      {artifactId && (
+        <label className="mt-3 block text-sm">
+          <span className="block text-xs font-medium uppercase tracking-wide text-slate-500">
+            Artifact id
+          </span>
+          <input
+            readOnly
+            value={artifactId}
+            className="mt-1 w-full rounded border bg-slate-50 px-3 py-2 font-mono text-sm"
+            data-testid="artifact-id"
+          />
+        </label>
       )}
       <div className="mt-3 flex flex-wrap gap-2">
         <a

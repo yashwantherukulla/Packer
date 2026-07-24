@@ -6,13 +6,14 @@ import { PackResultCard, type ArtifactMetrics } from "@/components/PackResultCar
 import { useJob, useArtifact } from "@/hooks/useJob";
 import { useSubmitPack } from "@/hooks/useSubmit";
 import { useJobProgress } from "@/hooks/useJobProgress";
+import { useSessionJobId } from "@/hooks/useSessionJob";
 import { detectHrefForArtifact } from "@/lib/result-ref";
 import { isTerminalStatus, parseResultRef } from "@/lib/result-ref";
 
 export function Pack() {
   const [epochs, setEpochs] = useState(200);
   const submit = useSubmitPack();
-  const jobId = submit.data?.id ?? null;
+  const { jobId } = useSessionJobId("pack:last-job-id", submit.data?.id);
   const progress = useJobProgress(jobId ?? "");
   const job = useJob(jobId ?? "");
   const status = job.data?.status ?? progress.status;
@@ -63,6 +64,7 @@ export function Pack() {
       {failed && <JobFailureCard error={job.data?.error} errorCode={job.data?.error_code} />}
       {done && artifact.data && (
         <PackResultCard
+          artifactId={artifact.data.id}
           metrics={artifact.data.metrics_json as unknown as ArtifactMetrics}
           downloadHref={`/api/artifacts/${artifact.data.id}?download=1`}
           detectHref={detectHrefForArtifact(artifact.data.id)}
