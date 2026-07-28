@@ -25,35 +25,54 @@ class LoadedModel:
 class HFModelLoader:
     """ModelLoader impl. Safetensors-first; pickle requires an explicit opt-in.
 
-    Local ``.safetensors`` files and directories are supported; HF-hub download
-    for ``kind="hf"`` is added when Phase 2 first needs a remote model. Local
-    paths cover the Phase 0/1 fixtures.
+    Local ``.safetensors`` files and directories are supported. For ``kind="hf"``,
+    the repo snapshot is downloaded from the Hugging Face Hub and then scanned for
+    safetensors weights. Local paths cover the Phase 0/1 fixtures.
     """
 
     def load(self, ref: ModelRef, *, allow_pickle: bool = False) -> LoadedModel:
-        path = Path(ref.value)
+        path = self._resolve_path(ref)
         if path.suffix in _PICKLE_SUFFIXES and not allow_pickle:
             raise UnsafeModelError(
                 f"refusing to load pickle file {path.name} without allow_pickle=True",
                 context={"path": str(path)},
             )
-        st = path if path.suffix == ".safetensors" else _find_safetensors(path)
-        if st is None:
+        tensors = _load_tensors(path, recursive=ref.kind == "hf")
+        if tensors is None:
             raise LoadError(f"no safetensors found for {ref.value}", context={"ref": ref.value})
-        tensors: dict[str, NDArray[Any]] = dict(load_file(str(st)))
         return LoadedModel(
             tensors=tensors,
-            config=_read_config(st.parent),
+            config=_read_config(path if path.is_dir() else path.parent),
             source=ref.value,
             format="safetensors",
         )
 
+    def _resolve_path(self, ref: ModelRef) -> Path:
+        if ref.kind != "hf":
+            return Path(ref.value)
+        try:
+            from huggingface_hub import snapshot_download
 
-def _find_safetensors(path: Path) -> Path | None:
+            return Path(snapshot_download(repo_id=ref.value))
+        except Exception as exc:
+            raise LoadError(
+                f"failed to download Hugging Face model snapshot for {ref.value}",
+                context={"ref": ref.value, "cause": str(exc)},
+            ) from exc
+
+
+def _load_tensors(path: Path, *, recursive: bool = False) -> dict[str, NDArray[Any]] | None:
     if path.is_dir():
-        files = sorted(path.glob("*.safetensors"))
-        return files[0] if files else None
-    return path if path.suffix == ".safetensors" else None
+        files = sorted(path.rglob("*.safetensors") if recursive else path.glob("*.safetensors"))
+        if not files:
+            return None
+        tensors: dict[str, NDArray[Any]] = {}
+        for file in files:
+            tensors.update(dict(load_file(str(file))))
+        return tensors
+    if path.suffix != ".safetensors":
+        return None
+    return dict(load_file(str(path)))
 
 
 def _read_config(directory: Path) -> dict[str, Any]:

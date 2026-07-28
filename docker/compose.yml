@@ -62,7 +62,6 @@ services:
     depends_on:
       redis: { condition: service_healthy }
       postgres: { condition: service_healthy }
-      sandbox-image: { condition: service_completed_successfully }
     volumes:
       - artifacts:/data/artifacts
       - ./../outputs/e2e-artifacts:/data/artifacts

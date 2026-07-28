@@ -51,3 +51,24 @@ def test_dynamic_benign_run_has_no_high_findings():
         SandboxPolicy(image="i"),
     )
     assert all(f.severity != "high" for f in findings)
+
+
+def test_dynamic_reports_nonzero_exit_without_changing_risk_score():
+    result = SandboxResult(
+        stdout="",
+        stderr="NameError: name '__file__' is not defined",
+        exit_code=1,
+        timed_out=False,
+        syscalls=("execve", "write", "exit_group"),
+    )
+
+    findings = DynamicAnalyzer().analyze(
+        ExecUnit(filename="a.py", data=b"", lang="python"),
+        _FakeSandbox(result),
+        SandboxPolicy(image="i"),
+    )
+
+    failure = next(f for f in findings if f.rule == "dynamic.nonzero-exit")
+    assert failure.severity == "info"
+    assert "status 1" in failure.note
+    assert "__file__" in failure.note

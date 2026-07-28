@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import contextlib
 import io
+import re
 import tarfile
+import tempfile
 import time
+from pathlib import Path, PurePosixPath
 from typing import Any
 
 import docker
@@ -15,8 +18,10 @@ from packer.engine.sandbox.policy import SandboxPolicy
 from packer.engine.sandbox.runner import ExecUnit, SandboxResult
 
 _TRACE = "trace.log"
+_SOURCE_MOUNT = "/packer-source"
 _LANG_CMD = {"python": ["python3"]}
 _NET_SYSCALLS = ("connect", "socket", "sendto", "sendmsg", "bind", "getaddrinfo")
+_TMPFS_OPTIONS = "uid=1000,gid=1000,mode=1777"
 
 
 @SANDBOX_REGISTRY.register("docker")
@@ -40,7 +45,8 @@ class DockerSandboxRunner:
             raise SandboxError(
                 f"unsupported sandbox lang: {unit.lang}", context={"lang": unit.lang}
             )
-        target = f"{policy.tmpfs_dir}/{unit.filename.replace('/', '_')}"
+        source_name = _safe_source_name(unit.filename)
+        target = f"{_SOURCE_MOUNT}/{source_name}"
         command = [
             "strace",
             "-f",
@@ -54,65 +60,82 @@ class DockerSandboxRunner:
         started = time.monotonic()
         container = None
         try:
-            container = self._client.containers.create(
-                image=policy.image,
-                command=command,
-                network_mode=policy.network,  # "none"
-                read_only=policy.read_only,  # --read-only
-                mem_limit=policy.memory,
-                nano_cpus=int(policy.cpus * 1_000_000_000),
-                pids_limit=policy.pids_limit,
-                cap_drop=list(policy.cap_drop),  # ["ALL"]
-                security_opt=[
-                    f"{opt}:true" if "=" not in opt and ":" not in opt else opt
-                    for opt in policy.security_opt
-                ],  # no-new-privileges:true
-                user=policy.user,  # non-root uid:gid
-                tmpfs={policy.tmpfs_dir: f"size={policy.tmpfs_size}"},
-                working_dir=policy.tmpfs_dir,
-                detach=True,
-            )
-            container.put_archive(policy.tmpfs_dir, _tar_bytes(target.rsplit("/", 1)[1], unit.data))
-            container.start()
-            timed_out = False
-            exit_code: int | None
-            try:
-                exit_code = int(container.wait(timeout=policy.timeout_s).get("StatusCode", -1))
-            except Exception:  # docker-py raises ReadTimeout on wall-clock timeout
-                timed_out = True
-                exit_code = None
-                with contextlib.suppress(DockerException):
-                    container.kill()
-            stdout = container.logs(stdout=True, stderr=False).decode("utf-8", "replace")
-            stderr = container.logs(stdout=False, stderr=True).decode("utf-8", "replace")
-            syscalls, fs_writes, net_attempts = _parse_trace(container, policy)
-            return SandboxResult(
-                stdout=stdout,
-                stderr=stderr,
-                exit_code=exit_code,
-                timed_out=timed_out,
-                syscalls=syscalls,
-                fs_writes=fs_writes,
-                net_attempts=net_attempts,
-                duration_s=time.monotonic() - started,
-            )
-        except (APIError, ImageNotFound, DockerException) as exc:
+            with tempfile.TemporaryDirectory(prefix="packer-sandbox-") as staging:
+                source_dir = Path(staging)
+                source_path = source_dir / source_name
+                source_path.write_bytes(unit.data)
+                source_path.chmod(0o444)
+                source_dir.chmod(0o555)
+                try:
+                    container = self._client.containers.create(
+                        image=policy.image,
+                        command=command,
+                        network_mode=policy.network,  # "none"
+                        read_only=policy.read_only,  # --read-only
+                        mem_limit=policy.memory,
+                        nano_cpus=int(policy.cpus * 1_000_000_000),
+                        pids_limit=policy.pids_limit,
+                        cap_drop=list(policy.cap_drop),  # ["ALL"]
+                        security_opt=[
+                            f"{opt}:true" if "=" not in opt and ":" not in opt else opt
+                            for opt in policy.security_opt
+                        ],  # no-new-privileges:true
+                        user=policy.user,  # non-root uid:gid
+                        tmpfs={policy.tmpfs_dir: f"size={policy.tmpfs_size},{_TMPFS_OPTIONS}"},
+                        volumes={
+                            str(source_dir): {
+                                "bind": _SOURCE_MOUNT,
+                                "mode": "ro",
+                            }
+                        },
+                        working_dir=policy.tmpfs_dir,
+                        detach=True,
+                    )
+                    container.start()
+                    timed_out = False
+                    exit_code: int | None
+                    try:
+                        exit_code = int(
+                            container.wait(timeout=policy.timeout_s).get("StatusCode", -1)
+                        )
+                    except Exception:  # docker-py raises ReadTimeout on wall-clock timeout
+                        timed_out = True
+                        exit_code = None
+                        with contextlib.suppress(DockerException):
+                            container.kill()
+                    stdout = container.logs(stdout=True, stderr=False).decode("utf-8", "replace")
+                    stderr = container.logs(stdout=False, stderr=True).decode("utf-8", "replace")
+                    syscalls, fs_writes, net_attempts = _parse_trace(container, policy)
+                    return SandboxResult(
+                        stdout=stdout,
+                        stderr=stderr,
+                        exit_code=exit_code,
+                        timed_out=timed_out,
+                        syscalls=syscalls,
+                        fs_writes=fs_writes,
+                        net_attempts=net_attempts,
+                        duration_s=time.monotonic() - started,
+                    )
+                finally:
+                    if container is not None:
+                        with contextlib.suppress(DockerException):
+                            container.remove(force=True)
+                    # Make cleanup portable: POSIX needs directory write permission
+                    # and Windows may preserve the file's read-only attribute.
+                    with contextlib.suppress(OSError):
+                        source_dir.chmod(0o700)
+                    with contextlib.suppress(OSError):
+                        source_path.chmod(0o600)
+        except (APIError, ImageNotFound, DockerException, OSError) as exc:
             raise SandboxError(
                 "sandbox run failed", context={"image": policy.image, "cause": str(exc)}
             ) from exc
-        finally:
-            if container is not None:
-                with contextlib.suppress(DockerException):
-                    container.remove(force=True)
 
 
-def _tar_bytes(name: str, data: bytes) -> bytes:
-    buf = io.BytesIO()
-    with tarfile.open(fileobj=buf, mode="w") as tar:
-        info = tarfile.TarInfo(name=name)
-        info.size = len(data)
-        tar.addfile(info, io.BytesIO(data))
-    return buf.getvalue()
+def _safe_source_name(filename: str) -> str:
+    basename = PurePosixPath(filename.replace("\\", "/")).name
+    sanitized = re.sub(r"[^A-Za-z0-9._-]", "_", basename)[:128]
+    return sanitized if sanitized not in {"", ".", ".."} else "unit.py"
 
 
 def _parse_trace(

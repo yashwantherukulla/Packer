@@ -43,6 +43,8 @@ jobs:
 
       # runs last: brings the stack down, rebuilds from clean, smokes, tears down
       - name: Clean-checkout smoke (self-managed lifecycle)
+        env:
+          PACKER_E2E_SELF_MANAGED: "1"
         run: uv run pytest tests/e2e/test_clean_checkout.py -m e2e -v
 
       - name: Dump logs on failure

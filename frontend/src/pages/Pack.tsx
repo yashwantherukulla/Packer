@@ -1,18 +1,27 @@
 import { useState } from "react";
+import { JobFailureCard } from "@/components/JobFailureCard";
 import { Uploader } from "@/components/Uploader";
 import { JobProgress } from "@/components/JobProgress";
 import { PackResultCard, type ArtifactMetrics } from "@/components/PackResultCard";
+import { useJob, useArtifact } from "@/hooks/useJob";
 import { useSubmitPack } from "@/hooks/useSubmit";
 import { useJobProgress } from "@/hooks/useJobProgress";
-import { useArtifact } from "@/hooks/useJob";
+import { useSessionJobId } from "@/hooks/useSessionJob";
+import { detectHrefForArtifact } from "@/lib/result-ref";
+import { isTerminalStatus, parseResultRef } from "@/lib/result-ref";
 
 export function Pack() {
   const [epochs, setEpochs] = useState(200);
   const submit = useSubmitPack();
-  const jobId = submit.data?.id ?? null;
+  const { jobId } = useSessionJobId("pack:last-job-id", submit.data?.id);
   const progress = useJobProgress(jobId ?? "");
-  const done = progress.status === "succeeded";
-  const artifact = useArtifact(done ? jobId : null);
+  const job = useJob(jobId ?? "");
+  const status = job.data?.status ?? progress.status;
+  const done = status === "succeeded";
+  const failed = status === "failed";
+  const active = !isTerminalStatus(status);
+  const artifactId = parseResultRef(job.data?.result_ref, "artifact");
+  const artifact = useArtifact(done ? artifactId : null);
 
   const onFile = (file: File) => {
     const form = new FormData();
@@ -40,22 +49,25 @@ export function Pack() {
       </label>
       {submit.isError && (
         <p className="text-sm text-red-700" role="alert">
-          Submission failed.
+          Submission failed: {submit.error instanceof Error ? submit.error.message : "unknown error"}
         </p>
       )}
-      {jobId && !done && (
+      {jobId && active && (
         <JobProgress
           step={progress.event?.step ?? "queued"}
           pct={progress.event?.pct ?? 0}
           detail={progress.event?.detail}
-          status={progress.status}
+          status={status}
           connected={progress.connected}
         />
       )}
+      {failed && <JobFailureCard error={job.data?.error} errorCode={job.data?.error_code} />}
       {done && artifact.data && (
         <PackResultCard
+          artifactId={artifact.data.id}
           metrics={artifact.data.metrics_json as unknown as ArtifactMetrics}
           downloadHref={`/api/artifacts/${artifact.data.id}?download=1`}
+          detectHref={detectHrefForArtifact(artifact.data.id)}
         />
       )}
     </div>

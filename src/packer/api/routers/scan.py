@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from typing import Any
 
 from fastapi import APIRouter, Depends
@@ -20,6 +21,11 @@ def submit_scan(
 ) -> JobRecord:
     # ScanRequest's validator already enforced exactly one of extraction_id/model_ref
     target = req.extraction_id or req.model_ref
-    job = svc.create(type="scan", input_ref=target, input_hash=target)
+    assert target is not None
+    job = svc.create(
+        type="scan",
+        input_ref=target,
+        input_hash=hashlib.sha256(target.encode("utf-8")).hexdigest(),
+    )
     broker.send_task("scan.run", args=[job.id, {"target": target}], queue="default")
     return job

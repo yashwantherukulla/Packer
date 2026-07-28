@@ -1,0 +1,87 @@
+from __future__ import annotations
+
+from pathlib import Path
+from typing import Any
+
+from packer.engine.common.types import ModelRef
+from packer.engine.extract.model import ExtractTarget
+
+_ARTIFACT_PREFIX = "artifact:"
+
+
+def resolve_model_ref(raw: str, *, store: Any | None = None) -> ModelRef:
+    """Resolve an API model_ref string to the engine's ModelRef.
+
+    The UI and API accept artifact ids in two forms:
+    - explicit ``artifact:<id>`` references
+    - bare artifact ids returned by ``/pack``
+
+    Both should resolve to the stored ``.pak`` directory so detect/extract/scan
+    operate on the real artifact, not a literal filesystem path named after the
+    id.
+    """
+
+    if raw.startswith(_ARTIFACT_PREFIX):
+        artifact_path = _artifact_path(raw[len(_ARTIFACT_PREFIX) :], store=store)
+        return ModelRef(kind="pak", value=str(artifact_path))
+
+    parsed = ModelRef.parse(raw)
+    if _is_explicit_local_ref(raw):
+        return parsed
+
+    stored_artifact_path = _existing_stored_artifact_path(raw, store=store)
+    if stored_artifact_path is not None:
+        return ModelRef(kind="pak", value=str(stored_artifact_path))
+    return parsed
+
+
+def resolve_pak_path(raw: str | None, *, store: Any | None = None) -> Path | None:
+    if not raw:
+        return None
+    if raw.startswith(_ARTIFACT_PREFIX):
+        return _artifact_path(raw[len(_ARTIFACT_PREFIX) :], store=store)
+
+    candidate = Path(raw)
+    if candidate.exists():
+        return candidate
+
+    if store is None:
+        return None
+
+    artifact_path = _artifact_path(raw, store=store)
+    return artifact_path if artifact_path.exists() else None
+
+
+def resolve_extract_target(
+    target: str,
+    *,
+    artifact_id: str | None = None,
+    store: Any | None = None,
+) -> ExtractTarget:
+    model_ref = resolve_model_ref(target, store=store)
+    pak_path = resolve_pak_path(artifact_id, store=store) if artifact_id else None
+    if pak_path is None and model_ref.kind == "pak":
+        pak_path = Path(model_ref.value)
+    return ExtractTarget(model_ref=model_ref, pak_path=pak_path)
+
+
+def _artifact_path(artifact_id: str, *, store: Any | None = None) -> Path:
+    if store is None or not hasattr(store, "pak_path"):
+        return Path(artifact_id)
+    return Path(str(store.pak_path(artifact_id)))
+
+
+def _existing_stored_artifact_path(artifact_id: str, *, store: Any | None = None) -> Path | None:
+    if store is None or not hasattr(store, "pak_path"):
+        return None
+    artifact_path = _artifact_path(artifact_id, store=store)
+    return artifact_path if artifact_path.exists() else None
+
+
+def _is_explicit_local_ref(raw: str) -> bool:
+    return (
+        Path(raw).exists()
+        or raw.endswith(".pak")
+        or raw.startswith((".", "/", "~"))
+        or (":" in raw and "\\" in raw)
+    )

@@ -14,7 +14,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends docker.io && rm
 WORKDIR /app
 
 COPY pyproject.toml uv.lock ./
-RUN --mount=type=cache,target=/root/.cache/uv \
+RUN --mount=type=cache,id=packer-worker-uv,target=/root/.cache/uv,sharing=locked \
     uv venv "$VIRTUAL_ENV" \
  && uv export --frozen --no-dev --no-emit-project --no-hashes -o /tmp/req.txt \
  && grep -vE '^(cuda-|nvidia-|triton==|torch==)' /tmp/req.txt > /tmp/req.cpu.txt \
@@ -27,7 +27,7 @@ RUN --mount=type=cache,target=/root/.cache/uv \
 COPY src ./src
 COPY conf ./conf
 COPY README.md ./
-RUN --mount=type=cache,target=/root/.cache/uv uv pip install --no-deps -e .
+RUN --mount=type=cache,id=packer-worker-uv,target=/root/.cache/uv,sharing=locked uv pip install --no-deps -e .
 
 # -Q is overridden by compose.cpu.yml (default,gpu). Celery app lives in packer.workers.celery_app.
 CMD ["celery", "-A", "packer.workers.celery_app", "worker", "-Q", "default", "--loglevel=info"]

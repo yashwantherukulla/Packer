@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from typing import Protocol, cast
 
+import packer.engine.sandbox.static  # noqa: F401  (self-registration)
 from packer.engine.common.registries import SCANNER_REGISTRY
 from packer.engine.sandbox.fileset import FileSet
 from packer.engine.sandbox.findings import Finding
@@ -60,6 +61,20 @@ class DynamicAnalyzer:
                     unit.filename,
                     0,
                     f"exceeded {policy.timeout_s}s wall-clock (possible hang/CPU abuse)",
+                )
+            )
+        if result.exit_code not in (0, None):
+            detail = f"exited with status {result.exit_code}"
+            stderr = result.stderr.strip()
+            if stderr:
+                detail += f": {stderr[:200]}"
+            findings.append(
+                Finding(
+                    "info",
+                    "dynamic.nonzero-exit",
+                    unit.filename,
+                    0,
+                    detail,
                 )
             )
         for sc in sorted(_SUSPICIOUS_SYSCALLS.intersection(result.syscalls)):

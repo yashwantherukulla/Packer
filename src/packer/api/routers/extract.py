@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import hashlib
 from typing import Any
 
 from fastapi import APIRouter, Depends
@@ -18,7 +19,11 @@ def submit_extract(
     svc: JobService = Depends(deps.get_job_service),
     broker: Any = Depends(deps.get_broker),
 ) -> JobRecord:
-    job = svc.create(type="extract", input_ref=req.model_ref, input_hash=req.model_ref)
+    job = svc.create(
+        type="extract",
+        input_ref=req.model_ref,
+        input_hash=hashlib.sha256(req.model_ref.encode("utf-8")).hexdigest(),
+    )
     broker.send_task(
         "extract.run",
         args=[job.id, {"target": req.model_ref, "artifact_id": req.artifact_id}],

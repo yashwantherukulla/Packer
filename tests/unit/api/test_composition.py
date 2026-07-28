@@ -69,10 +69,24 @@ def test_assemble_ports_wires_store_and_loader(tmp_path):
         {
             "store": {"name": "filesystem", "params": {"root": str(tmp_path)}},
             "models": {"allow_pickle": False},
+            "engine": {"extract": {"sandbox_runner": "fake_sandbox"}},
+        }
+    )
+    ports = assemble_ports(cfg, include_sandbox=True)
+    assert isinstance(ports.store, FilesystemArtifactStore)
+    assert ports.loader is not None
+    assert isinstance(ports.sandbox, _FakeSandboxRunner)
+
+
+def test_assemble_ports_accepts_legacy_sandbox_runner_shape(tmp_path):
+    from omegaconf import OmegaConf
+
+    cfg = OmegaConf.create(
+        {
+            "store": {"name": "filesystem", "params": {"root": str(tmp_path)}},
+            "models": {"allow_pickle": False},
             "sandbox": {"runner": "fake_sandbox"},
         }
     )
-    ports = assemble_ports(cfg)
-    assert isinstance(ports.store, FilesystemArtifactStore)
-    assert ports.loader is not None
+    ports = assemble_ports(cfg, include_sandbox=True)
     assert isinstance(ports.sandbox, _FakeSandboxRunner)

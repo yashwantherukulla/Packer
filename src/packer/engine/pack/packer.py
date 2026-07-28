@@ -53,7 +53,9 @@ class Packer:
         context_len = int(cfg.context_len)
         if len(tokens) > context_len:
             raise PackError(
-                f"corpus token length {len(tokens)} exceeds context_len {context_len}",
+                "corpus token length "
+                f"{len(tokens)} exceeds context_len {context_len}; "
+                "use a smaller repo zip or increase engine/pack.context_len",
                 context={"n_tokens": len(tokens), "context_len": context_len},
             )
 
