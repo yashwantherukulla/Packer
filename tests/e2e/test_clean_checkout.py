@@ -32,13 +32,7 @@ def test_clean_checkout_brings_stack_online() -> None:
         cwd=REPO_ROOT,
         check=False,
     )
-    try:
-        _compose("up", "-d", "--build")
-    except subprocess.CalledProcessError as exc:
-        pytest.skip(
-            "docker compose could not bring the clean-checkout stack online locally "
-            f"(compose exit code {exc.returncode})"
-        )
+    _compose("up", "-d", "--build")
     try:
         _wait_http(f"{API_BASE}/docs")
         assert httpx.get(f"{API_BASE}/openapi.json", timeout=10).status_code == 200

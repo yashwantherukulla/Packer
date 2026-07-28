@@ -21,10 +21,18 @@ def resolve_model_ref(raw: str, *, store: Any | None = None) -> ModelRef:
     id.
     """
 
-    pak_path = resolve_pak_path(raw, store=store)
-    if pak_path is not None:
-        return ModelRef(kind="pak", value=str(pak_path))
-    return ModelRef.parse(raw)
+    if raw.startswith(_ARTIFACT_PREFIX):
+        artifact_path = _artifact_path(raw[len(_ARTIFACT_PREFIX) :], store=store)
+        return ModelRef(kind="pak", value=str(artifact_path))
+
+    parsed = ModelRef.parse(raw)
+    if _is_explicit_local_ref(raw):
+        return parsed
+
+    stored_artifact_path = _existing_stored_artifact_path(raw, store=store)
+    if stored_artifact_path is not None:
+        return ModelRef(kind="pak", value=str(stored_artifact_path))
+    return parsed
 
 
 def resolve_pak_path(raw: str | None, *, store: Any | None = None) -> Path | None:
@@ -61,3 +69,19 @@ def _artifact_path(artifact_id: str, *, store: Any | None = None) -> Path:
     if store is None or not hasattr(store, "pak_path"):
         return Path(artifact_id)
     return Path(str(store.pak_path(artifact_id)))
+
+
+def _existing_stored_artifact_path(artifact_id: str, *, store: Any | None = None) -> Path | None:
+    if store is None or not hasattr(store, "pak_path"):
+        return None
+    artifact_path = _artifact_path(artifact_id, store=store)
+    return artifact_path if artifact_path.exists() else None
+
+
+def _is_explicit_local_ref(raw: str) -> bool:
+    return (
+        Path(raw).exists()
+        or raw.endswith(".pak")
+        or raw.startswith((".", "/", "~"))
+        or (":" in raw and "\\" in raw)
+    )

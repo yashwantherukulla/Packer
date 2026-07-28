@@ -44,9 +44,15 @@ def policy() -> SandboxPolicy:
     return SandboxPolicy.from_cfg(compose_config().engine.sandbox)
 
 
-def _run(code: str, policy: SandboxPolicy) -> SandboxResult:
+def _run(
+    code: str,
+    policy: SandboxPolicy,
+    *,
+    filename: str = "attack.py",
+    argv: tuple[str, ...] = (),
+) -> SandboxResult:
     return DockerSandboxRunner().run(
-        ExecUnit(filename="attack.py", data=code.encode(), lang="python"), policy
+        ExecUnit(filename=filename, data=code.encode(), lang="python", argv=argv), policy
     )
 
 
@@ -105,3 +111,15 @@ def test_no_new_privileges(policy: SandboxPolicy):
     # smoke: escalation paths gain nothing under --security-opt=no-new-privileges + cap-drop ALL
     res = _run("import ctypes  # setuid escalation path is neutralized\n", policy)
     assert res.exit_code == 0
+
+
+def test_file_backed_execution_preserves_python_script_semantics(policy: SandboxPolicy):
+    res = _run(
+        "import os, sys\nprint(os.path.basename(__file__))\nprint(sys.argv[1])\n",
+        policy,
+        filename="script with spaces.py",
+        argv=("sentinel",),
+    )
+
+    assert res.exit_code == 0
+    assert res.stdout.splitlines() == ["script_with_spaces.py", "sentinel"]
