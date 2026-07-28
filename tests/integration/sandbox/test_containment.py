@@ -102,7 +102,8 @@ def test_wall_clock_timeout(policy: SandboxPolicy):
 
 
 def test_cannot_read_host_paths(policy: SandboxPolicy):
-    # nothing from the host is bind-mounted in; a host-only marker must be absent
+    # Only the private, read-only source staging directory is mounted. Arbitrary
+    # host paths remain unavailable to the sandbox.
     res = _run("import os; print(os.path.exists('/host_secret'))\n", policy)
     assert res.stdout.strip() == "False"
 
