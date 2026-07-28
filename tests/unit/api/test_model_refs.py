@@ -49,3 +49,24 @@ def test_resolve_pak_path_returns_none_for_plain_unknown_ref(tmp_path: Path) -> 
     store = _Store(tmp_path)
 
     assert resolve_pak_path("unknown", store=store) is None
+
+
+def test_existing_local_model_directory_remains_a_path_ref(tmp_path: Path) -> None:
+    model_dir = tmp_path / "local-model"
+    model_dir.mkdir()
+    (model_dir / "model.safetensors").write_bytes(b"weights")
+
+    ref = resolve_model_ref(str(model_dir), store=_Store(tmp_path / "artifacts"))
+
+    assert ref == ModelRef(kind="path", value=str(model_dir))
+
+
+def test_extract_target_does_not_treat_local_model_as_pak(tmp_path: Path) -> None:
+    model_dir = tmp_path / "local-model"
+    model_dir.mkdir()
+    (model_dir / "model.safetensors").write_bytes(b"weights")
+
+    target = resolve_extract_target(str(model_dir), store=_Store(tmp_path / "artifacts"))
+
+    assert target.model_ref == ModelRef(kind="path", value=str(model_dir))
+    assert target.pak_path is None

@@ -2,8 +2,10 @@ from __future__ import annotations
 
 import contextlib
 import io
+import re
 import tarfile
 import time
+from pathlib import PurePosixPath
 from typing import Any
 
 import docker
@@ -15,9 +17,12 @@ from packer.engine.sandbox.policy import SandboxPolicy
 from packer.engine.sandbox.runner import ExecUnit, SandboxResult
 
 _TRACE = "trace.log"
+_READY = ".packer-source-ready"
+_SOURCE_DIR = "source"
 _LANG_CMD = {"python": ["python3"]}
 _NET_SYSCALLS = ("connect", "socket", "sendto", "sendmsg", "bind", "getaddrinfo")
 _TMPFS_OPTIONS = "uid=1000,gid=1000,mode=1777"
+_WAIT_FOR_SOURCE = 'while [ ! -f "$1" ]; do sleep 0.01; done; shift; exec "$@"'
 
 
 @SANDBOX_REGISTRY.register("docker")
@@ -41,16 +46,22 @@ class DockerSandboxRunner:
             raise SandboxError(
                 f"unsupported sandbox lang: {unit.lang}", context={"lang": unit.lang}
             )
-        source = unit.data.decode("utf-8", "replace")
+        source_name = _safe_source_name(unit.filename)
+        target = f"{policy.tmpfs_dir}/{_SOURCE_DIR}/{source_name}"
+        ready = f"{policy.tmpfs_dir}/{_READY}"
         command = [
+            "/bin/sh",
+            "-c",
+            _WAIT_FOR_SOURCE,
+            "packer-sandbox",
+            ready,
             "strace",
             "-f",
             "-qq",
             "-o",
             f"{policy.tmpfs_dir}/{_TRACE}",
             *interp,
-            "-c",
-            source,
+            target,
             *unit.argv,
         ]
         started = time.monotonic()
@@ -75,6 +86,11 @@ class DockerSandboxRunner:
                 detach=True,
             )
             container.start()
+            if not container.put_archive(policy.tmpfs_dir, _source_archive(source_name, unit.data)):
+                raise SandboxError(
+                    "failed to copy source into sandbox",
+                    context={"filename": unit.filename},
+                )
             timed_out = False
             exit_code: int | None
             try:
@@ -105,6 +121,32 @@ class DockerSandboxRunner:
             if container is not None:
                 with contextlib.suppress(DockerException):
                     container.remove(force=True)
+
+
+def _safe_source_name(filename: str) -> str:
+    basename = PurePosixPath(filename.replace("\\", "/")).name
+    sanitized = re.sub(r"[^A-Za-z0-9._-]", "_", basename)[:128]
+    return sanitized if sanitized not in {"", ".", ".."} else "unit.py"
+
+
+def _source_archive(name: str, data: bytes) -> bytes:
+    buf = io.BytesIO()
+    with tarfile.open(fileobj=buf, mode="w") as tar:
+        source_dir = tarfile.TarInfo(name=f"{_SOURCE_DIR}/")
+        source_dir.type = tarfile.DIRTYPE
+        source_dir.mode = 0o555
+        tar.addfile(source_dir)
+
+        source = tarfile.TarInfo(name=f"{_SOURCE_DIR}/{name}")
+        source.size = len(data)
+        source.mode = 0o444
+        tar.addfile(source, io.BytesIO(data))
+
+        ready = tarfile.TarInfo(name=_READY)
+        ready.size = 0
+        ready.mode = 0o444
+        tar.addfile(ready, io.BytesIO())
+    return buf.getvalue()
 
 
 def _parse_trace(

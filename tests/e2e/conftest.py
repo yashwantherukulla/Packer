@@ -69,14 +69,7 @@ def compose_stack() -> Iterator[str]:
             "docker daemon required to self-manage the stack (set PACKER_E2E_BASE_URL in CI)"
         )
     ARTIFACT_HOST_DIR.mkdir(parents=True, exist_ok=True)
-    try:
-        _compose("up", "-d", "--build")
-    except subprocess.CalledProcessError as exc:
-        pytest.skip(
-            "docker compose could not bring the local E2E stack online; "
-            "set PACKER_E2E_BASE_URL to reuse an external stack "
-            f"(compose exit code {exc.returncode})"
-        )
+    _compose("up", "-d", "--build")
     try:
         _wait_http(f"{API_BASE}/docs")
         yield API_BASE

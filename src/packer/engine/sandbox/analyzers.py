@@ -63,6 +63,20 @@ class DynamicAnalyzer:
                     f"exceeded {policy.timeout_s}s wall-clock (possible hang/CPU abuse)",
                 )
             )
+        if result.exit_code not in (0, None):
+            detail = f"exited with status {result.exit_code}"
+            stderr = result.stderr.strip()
+            if stderr:
+                detail += f": {stderr[:200]}"
+            findings.append(
+                Finding(
+                    "info",
+                    "dynamic.nonzero-exit",
+                    unit.filename,
+                    0,
+                    detail,
+                )
+            )
         for sc in sorted(_SUSPICIOUS_SYSCALLS.intersection(result.syscalls)):
             findings.append(
                 Finding(
