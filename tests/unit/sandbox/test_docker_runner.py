@@ -1,5 +1,4 @@
-import io
-import tarfile
+from pathlib import Path
 
 import pytest
 
@@ -15,17 +14,12 @@ class _FakeContainer:
         self.kwargs = kwargs
         self.removed = False
         self.events = []
-        self.archive = b""
+        self.source_dir = Path(next(iter(kwargs["volumes"])))
+        self.source_files = {path.name: path.read_bytes() for path in self.source_dir.iterdir()}
 
     def start(self):
         self.events.append("start")
         return None
-
-    def put_archive(self, path, data):
-        self.events.append("put_archive")
-        self.archive_path = path
-        self.archive = data
-        return True
 
     def wait(self, timeout=None):
         self.events.append("wait")
@@ -79,18 +73,17 @@ def test_run_applies_hardened_flags():
     assert "uid=1000" in kw["tmpfs"]["/scratch"]
     assert "gid=1000" in kw["tmpfs"]["/scratch"]
     assert "mode=1777" in kw["tmpfs"]["/scratch"]
-    assert cmd[:2] == ["/bin/sh", "-c"]
+    assert cmd[:4] == ["strace", "-f", "-qq", "-o"]
     python_index = cmd.index("python3")
-    assert cmd[python_index + 1] == "/scratch/source/a.py"
+    assert cmd[python_index + 1] == "/packer-source/a.py"
     assert "print('hello')" not in cmd
-    assert client.containers.last.events[:3] == ["start", "put_archive", "wait"]
-    assert client.containers.last.archive_path == "/scratch"
-    with tarfile.open(fileobj=io.BytesIO(client.containers.last.archive), mode="r") as archive:
-        source = archive.extractfile("source/a.py")
-        assert source is not None
-        assert source.read() == b"print('hello')"
-        assert archive.getmember("source").isdir()
-        assert ".packer-source-ready" in archive.getnames()
+    assert kw["volumes"][str(client.containers.last.source_dir)] == {
+        "bind": "/packer-source",
+        "mode": "ro",
+    }
+    assert client.containers.last.source_files == {"a.py": b"print('hello')"}
+    assert client.containers.last.events[:2] == ["start", "wait"]
+    assert not client.containers.last.source_dir.exists()
     assert res.exit_code == 0 and res.timed_out is False
     assert "hello" in res.stdout
 
@@ -120,15 +113,16 @@ def test_source_path_cannot_collide_with_trace_control_file():
 
     command = client.containers.last.kwargs["command"]
     python_index = command.index("python3")
-    assert command[python_index + 1] == "/scratch/source/trace.log"
+    assert command[python_index + 1] == "/packer-source/trace.log"
     assert command[command.index("-o") + 1] == "/scratch/trace.log"
 
 
-def test_failed_source_copy_is_a_sandbox_error_and_container_is_removed():
+def test_failed_container_start_is_a_sandbox_error_and_resources_are_removed():
+    import docker.errors as de
+
     class _RejectingContainer(_FakeContainer):
-        def put_archive(self, path, data):
-            self.events.append("put_archive")
-            return False
+        def start(self):
+            raise de.APIError("start failed")
 
     class _RejectingContainers(_FakeContainers):
         def create(self, **kwargs):
@@ -138,10 +132,11 @@ def test_failed_source_copy_is_a_sandbox_error_and_container_is_removed():
     client = _FakeClient()
     client.containers = _RejectingContainers()
 
-    with pytest.raises(SandboxError, match="failed to copy source"):
+    with pytest.raises(SandboxError, match="sandbox run failed"):
         DockerSandboxRunner(client=client).run(
             ExecUnit(filename="a.py", data=b"x", lang="python"),
             SandboxPolicy(image="i"),
         )
 
     assert client.containers.last.removed is True
+    assert not client.containers.last.source_dir.exists()
