@@ -13,6 +13,12 @@ It has four parts:
 
 > **Honest framing:** as a literal *compression* scheme, a from-scratch model that memorizes a repo is usually **larger** than the repo (and larger than `gzip`). Packer's value is (a) a rigorous demonstration of memorization-as-storage and (b) a threat model + fixture generator for the detection and sandboxing work in Parts 2–3. See [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md#8-assumptions-risks-and-non-goals).
 
+> **Research carrier profile:** use Hydra group `engine/pack=research_fixed` for
+> memorization experiments. It uses a deterministic one-token-per-byte vocabulary
+> and rejects sequences below 256 tokens, preventing learned BPE from collapsing a
+> tiny repository into a single token. The legacy service default remains
+> `byte-bpe` for compatibility and is not, by itself, a valid research protocol.
+
 ## Documentation
 
 Start here, in order:

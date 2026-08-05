@@ -41,13 +41,13 @@ def _tiny_cfg(out_dir: Path, seed: int, epochs: int) -> DictConfig:
     cfg = OmegaConf.create(
         {
             "arch": "tiny-decoder",
-            "tokenizer": "byte-bpe",
+            "tokenizer": "byte-fixed",
             "decode": "teacher-forced-greedy",
             "codec": "delta-varint-v1",
             "n_layers": 1,
             "d_model": 32,
             "n_heads": 2,
-            "vocab_size": 320,
+            "vocab_size": 257,
             "context_len": 512,
             "epochs": epochs,
             "lr": 5e-3,
@@ -66,7 +66,7 @@ def _tiny_cfg(out_dir: Path, seed: int, epochs: int) -> DictConfig:
 
 def _control_cfg() -> DictConfig:
     cfg = OmegaConf.create(
-        {"vocab_size": 320, "d_model": 32, "n_layers": 1, "n_heads": 2, "context_len": 512}
+        {"vocab_size": 257, "d_model": 32, "n_layers": 1, "n_heads": 2, "context_len": 512}
     )
     assert isinstance(cfg, DictConfig)
     return cfg
@@ -105,7 +105,7 @@ def make_fixtures(out_dir: Path) -> dict[str, Path]:
     # --- control 2: normal-trained on noise (does not memorize any real repo) ---
     apply_determinism(2000, True)
     noisy_model = TinyDecoderArch().build(_control_cfg())
-    noise_tokens = torch.randint(0, 320, (200,)).tolist()
+    noise_tokens = torch.randint(0, 257, (200,)).tolist()
     noise_cfg = OmegaConf.create(
         {
             "seed": 2000,

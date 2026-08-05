@@ -13,13 +13,13 @@ from packer.engine.pack.unpacker import unpack
 def _tiny_cfg(tmp_out: Path, **over) -> DictConfig:
     base = {
         "arch": "tiny-decoder",
-        "tokenizer": "byte-bpe",
+        "tokenizer": "byte-fixed",
         "decode": "teacher-forced-greedy",
         "codec": "delta-varint-v1",
         "n_layers": 1,
         "d_model": 16,
         "n_heads": 2,
-        "vocab_size": 320,
+        "vocab_size": 257,
         "context_len": 256,
         "epochs": 1,
         "lr": 5e-3,
