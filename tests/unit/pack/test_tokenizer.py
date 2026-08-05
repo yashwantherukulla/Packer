@@ -1,3 +1,5 @@
+import json
+
 import pytest
 
 from packer.engine.common.errors import PackError
@@ -44,6 +46,17 @@ def test_fixed_byte_serialization_is_deterministic_and_loadable():
     clone = FixedByteTokenizer.from_bytes(first.to_bytes())
     assert clone.encode(b"\x00abc\xff") == [1, 98, 99, 100, 256]
     assert clone.decode([1, 98, 99, 100, 256]) == b"\x00abc\xff"
+
+
+def test_fixed_byte_load_rejects_permuted_byte_ids():
+    tok = FixedByteTokenizer()
+    tok.train(b"ignored", vocab_size=257)
+    payload = json.loads(tok.to_bytes())
+    vocab = payload["model"]["vocab"]
+    vocab["X"], vocab["Y"] = vocab["Y"], vocab["X"]
+
+    with pytest.raises(PackError, match="canonical byte mapping"):
+        FixedByteTokenizer.from_bytes(json.dumps(payload).encode("utf-8"))
 
 
 def test_fixed_byte_rejects_misleading_vocab_size():

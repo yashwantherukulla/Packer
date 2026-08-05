@@ -76,6 +76,10 @@ class FixedByteTokenizer(_HfByteTokenizer):
 
     VOCAB_SIZE = len(_BYTE_ALPHABET) + 1
 
+    @staticmethod
+    def _canonical_vocab() -> dict[str, int]:
+        return {_BOS: 0, **{char: byte + 1 for byte, char in enumerate(_BYTE_ALPHABET)}}
+
     def train(self, corpus: bytes, vocab_size: int) -> None:
         del corpus  # fixed vocabulary is corpus-independent by design
         if int(vocab_size) != self.VOCAB_SIZE:
@@ -83,10 +87,30 @@ class FixedByteTokenizer(_HfByteTokenizer):
                 f"byte-fixed requires vocab_size={self.VOCAB_SIZE}, got {vocab_size}",
                 context={"tokenizer": "byte-fixed", "required_vocab_size": self.VOCAB_SIZE},
             )
-        vocab = {_BOS: 0, **{char: byte + 1 for byte, char in enumerate(_BYTE_ALPHABET)}}
-        tok = Tokenizer(models.BPE(vocab=vocab, merges=[], unk_token=None))
+        tok = Tokenizer(models.BPE(vocab=self._canonical_vocab(), merges=[], unk_token=None))
         tok.decoder = decoders.Fuse()
         self._tok = tok
+
+    def load(self, blob: bytes) -> None:
+        """Load only tokenizer state that satisfies the fixed-byte contract."""
+        super().load(blob)
+        try:
+            actual_vocab = self._require().get_vocab()
+            expected_ids = list(range(1, self.VOCAB_SIZE))
+            all_bytes = bytes(range(256))
+            if (
+                actual_vocab != self._canonical_vocab()
+                or self.merge_count() != 0
+                or self.bos_id() != 0
+                or self.encode(all_bytes) != expected_ids
+                or self.decode(expected_ids) != all_bytes
+            ):
+                raise PackError("loaded byte-fixed tokenizer violates the canonical byte mapping")
+        except Exception as exc:
+            self._tok = None
+            if isinstance(exc, PackError):
+                raise
+            raise PackError("loaded byte-fixed tokenizer is invalid") from exc
 
     @classmethod
     def from_bytes(cls, blob: bytes) -> FixedByteTokenizer:
