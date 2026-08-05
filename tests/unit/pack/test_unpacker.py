@@ -97,3 +97,12 @@ def test_unpack_from_disk(tmp_path: Path):
     out = tmp_path / "x.pak"
     PakWriter().write(out, bundle)
     assert unpack(out) == files
+
+
+def test_unpacker_reads_committed_v10_bpe_fixture():
+    fixture = Path(__file__).resolve().parents[2] / "fixtures" / "tiny_repo.pak"
+
+    assert unpack(fixture) == {
+        "main.py": b"print('hello world')\n",
+        "util/helpers.py": b"X = 1\n",
+    }

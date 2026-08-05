@@ -44,6 +44,33 @@ def test_manifest_records_honest_metrics(tmp_path: Path, cfg_factory):
     assert m.residuals.codec == "delta-varint-v1"
 
 
+def test_manifest_records_tokenizer_facts_and_exact_byte_spans(tmp_path: Path, cfg_factory):
+    files = _repo(tmp_path / "repo")
+    cfg = cfg_factory(
+        tokenizer="byte-fixed", vocab_size=257, epochs=0, out_dir=str(tmp_path / "out")
+    )
+    artifact = Packer().pack(tmp_path / "repo", cfg, EnginePorts())
+
+    from packer.engine.artifacts.pak import PakReader
+    from packer.engine.pack.corpus import MarkerCorpusSerializer
+
+    manifest = PakReader().read(Path(artifact)).manifest
+    serialized = MarkerCorpusSerializer().serialize(tmp_path / "repo")
+    assert manifest.pak_version == "1.1"
+    assert manifest.tokenizer is not None
+    assert manifest.tokenizer.name == "byte-fixed"
+    assert manifest.tokenizer.configured_vocab_size == 257
+    assert manifest.tokenizer.actual_vocab_size == 257
+    assert manifest.tokenizer.merge_count == 0
+    assert manifest.tokenizer.serialized_bytes_per_token == 1.0
+    for span in manifest.corpus.file_map:
+        assert span.byte_start is not None and span.byte_end is not None
+        assert span.byte_start <= span.byte_end
+        assert span.token_start == span.byte_start
+        assert span.token_end == span.byte_end
+        assert serialized.bytes[span.byte_start : span.byte_end] == files[span.path]
+
+
 def test_verification_gate_raises_on_dropped_residuals(tmp_path: Path, cfg_factory, monkeypatch):
     _repo(tmp_path / "repo")
     cfg = cfg_factory(epochs=0, out_dir=str(tmp_path / "out"))  # untrained -> residuals needed

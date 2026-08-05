@@ -10,11 +10,10 @@ from numpy.typing import NDArray
 from packer.engine.artifacts.manifest import ModelInfo
 from packer.engine.artifacts.pak import PakBundle, PakReader
 from packer.engine.common.errors import ReconstructionError
-from packer.engine.common.registries import CODEC_REGISTRY, DECODE_REGISTRY
+from packer.engine.common.registries import CODEC_REGISTRY, DECODE_REGISTRY, TOKENIZER_REGISTRY
 from packer.engine.pack.arch import TinyDecoder
 from packer.engine.pack.corpus import MarkerCorpusSerializer
 from packer.engine.pack.decode import DecodeStrategy, InferenceModel, Unpacker
-from packer.engine.pack.tokenizer import ByteBPETokenizer
 
 
 def unpack(pak_path: Path) -> dict[str, bytes]:
@@ -24,7 +23,28 @@ def unpack(pak_path: Path) -> dict[str, bytes]:
 
 def unpack_bundle(bundle: PakBundle) -> dict[str, bytes]:
     manifest = bundle.manifest
-    tokenizer = ByteBPETokenizer.from_bytes(bundle.tokenizer_bytes)
+    tokenizer_name = manifest.tokenizer.name if manifest.tokenizer is not None else "byte-bpe"
+    tokenizer = TOKENIZER_REGISTRY.create(tokenizer_name)
+    tokenizer.load(bundle.tokenizer_bytes)
+    if (
+        manifest.tokenizer is not None
+        and tokenizer.vocab_size() != manifest.tokenizer.actual_vocab_size
+    ):
+        raise ReconstructionError(
+            "tokenizer vocabulary does not match manifest",
+            context={
+                "manifest_vocab_size": manifest.tokenizer.actual_vocab_size,
+                "loaded_vocab_size": tokenizer.vocab_size(),
+            },
+        )
+    if manifest.tokenizer is not None and tokenizer.merge_count() != manifest.tokenizer.merge_count:
+        raise ReconstructionError(
+            "tokenizer merge count does not match manifest",
+            context={
+                "manifest_merge_count": manifest.tokenizer.merge_count,
+                "loaded_merge_count": tokenizer.merge_count(),
+            },
+        )
     model = _rebuild_model(bundle.tensors, manifest.model)
     inference = InferenceModel(model, tokenizer, manifest.decode.bos_token_id)
     codec = CODEC_REGISTRY.create(manifest.residuals.codec)
