@@ -41,3 +41,62 @@ def test_unknown_future_version_rejected():
     data["pak_version"] = "99.0"
     with pytest.raises(ConfigError):
         Manifest.model_validate(data)
+
+
+def test_v11_requires_tokenizer_metadata():
+    data = _min_manifest().model_dump()
+    data["pak_version"] = "1.1"
+
+    with pytest.raises(ConfigError, match="requires tokenizer metadata"):
+        Manifest.model_validate(data)
+
+
+def test_v11_records_tokenizer_and_authoritative_byte_spans():
+    data = _min_manifest().model_dump()
+    data["pak_version"] = "1.1"
+    data["tokenizer"] = {
+        "name": "byte-fixed",
+        "configured_vocab_size": 257,
+        "actual_vocab_size": 257,
+        "merge_count": 0,
+        "serialized_bytes_per_token": 1.0,
+    }
+    data["corpus"]["file_map"] = [
+        {"path": "a.py", "token_start": 9, "token_end": 12, "byte_start": 9, "byte_end": 12}
+    ]
+
+    manifest = Manifest.model_validate(data)
+
+    assert manifest.tokenizer is not None
+    assert manifest.tokenizer.name == "byte-fixed"
+    assert manifest.corpus.file_map[0].byte_start == 9
+
+
+def test_v10_remains_compatible_without_tokenizer_metadata():
+    manifest = _min_manifest()
+
+    assert manifest.pak_version == "1.0"
+    assert manifest.tokenizer is None
+
+
+def test_v10_rejects_file_without_required_token_span():
+    data = _min_manifest().model_dump()
+    data["corpus"]["file_map"] = [{"path": "a.py"}]
+
+    with pytest.raises(ConfigError, match=r"1\.0 requires token spans"):
+        Manifest.model_validate(data)
+
+
+def test_v11_rejects_file_without_authoritative_byte_span():
+    data = _min_manifest().model_dump()
+    data["pak_version"] = "1.1"
+    data["tokenizer"] = {
+        "name": "byte-bpe",
+        "configured_vocab_size": 512,
+        "actual_vocab_size": 300,
+        "merge_count": 43,
+    }
+    data["corpus"]["file_map"] = [{"path": "a.py", "token_start": 1, "token_end": 2}]
+
+    with pytest.raises(ConfigError, match=r"1\.1 requires byte spans"):
+        Manifest.model_validate(data)

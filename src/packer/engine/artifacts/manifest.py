@@ -1,10 +1,10 @@
 from __future__ import annotations
 
-from pydantic import BaseModel, field_validator
+from pydantic import BaseModel, field_validator, model_validator
 
 from packer.engine.common.errors import ConfigError
 
-_SUPPORTED = {"1.0"}
+_SUPPORTED = {"1.0", "1.1"}
 
 
 class ModelInfo(BaseModel):
@@ -19,8 +19,20 @@ class ModelInfo(BaseModel):
 
 class FileSpan(BaseModel):
     path: str
-    token_start: int
-    token_end: int
+    # Token spans are exact for byte-fixed. Learned BPE can merge across a file
+    # boundary, so v1.1 makes them optional and records authoritative byte spans.
+    token_start: int | None = None
+    token_end: int | None = None
+    byte_start: int | None = None
+    byte_end: int | None = None
+
+
+class TokenizerInfo(BaseModel):
+    name: str
+    configured_vocab_size: int
+    actual_vocab_size: int
+    merge_count: int
+    serialized_bytes_per_token: float | None = None
 
 
 class CorpusInfo(BaseModel):
@@ -57,6 +69,7 @@ class Manifest(BaseModel):
     pak_version: str
     created_utc: str
     model: ModelInfo
+    tokenizer: TokenizerInfo | None = None
     corpus: CorpusInfo
     decode: DecodeInfo
     residuals: ResidualInfo
@@ -69,6 +82,17 @@ class Manifest(BaseModel):
         if v not in _SUPPORTED:
             raise ConfigError(f"unsupported pak_version {v!r}; supported: {sorted(_SUPPORTED)}")
         return v
+
+    @model_validator(mode="after")
+    def _check_versioned_fields(self) -> Manifest:
+        if self.pak_version == "1.1" and self.tokenizer is None:
+            raise ConfigError("pak_version 1.1 requires tokenizer metadata")
+        for span in self.corpus.file_map:
+            if self.pak_version == "1.0" and (span.token_start is None or span.token_end is None):
+                raise ConfigError("pak_version 1.0 requires token spans for every file")
+            if self.pak_version == "1.1" and (span.byte_start is None or span.byte_end is None):
+                raise ConfigError("pak_version 1.1 requires byte spans for every file")
+        return self
 
     def to_json(self) -> str:
         return self.model_dump_json(indent=2)
