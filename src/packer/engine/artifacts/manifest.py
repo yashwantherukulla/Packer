@@ -87,6 +87,11 @@ class Manifest(BaseModel):
     def _check_versioned_fields(self) -> Manifest:
         if self.pak_version == "1.1" and self.tokenizer is None:
             raise ConfigError("pak_version 1.1 requires tokenizer metadata")
+        for span in self.corpus.file_map:
+            if self.pak_version == "1.0" and (span.token_start is None or span.token_end is None):
+                raise ConfigError("pak_version 1.0 requires token spans for every file")
+            if self.pak_version == "1.1" and (span.byte_start is None or span.byte_end is None):
+                raise ConfigError("pak_version 1.1 requires byte spans for every file")
         return self
 
     def to_json(self) -> str:

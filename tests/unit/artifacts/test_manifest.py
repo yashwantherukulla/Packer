@@ -77,3 +77,26 @@ def test_v10_remains_compatible_without_tokenizer_metadata():
 
     assert manifest.pak_version == "1.0"
     assert manifest.tokenizer is None
+
+
+def test_v10_rejects_file_without_required_token_span():
+    data = _min_manifest().model_dump()
+    data["corpus"]["file_map"] = [{"path": "a.py"}]
+
+    with pytest.raises(ConfigError, match=r"1\.0 requires token spans"):
+        Manifest.model_validate(data)
+
+
+def test_v11_rejects_file_without_authoritative_byte_span():
+    data = _min_manifest().model_dump()
+    data["pak_version"] = "1.1"
+    data["tokenizer"] = {
+        "name": "byte-bpe",
+        "configured_vocab_size": 512,
+        "actual_vocab_size": 300,
+        "merge_count": 43,
+    }
+    data["corpus"]["file_map"] = [{"path": "a.py", "token_start": 1, "token_end": 2}]
+
+    with pytest.raises(ConfigError, match=r"1\.1 requires byte spans"):
+        Manifest.model_validate(data)
