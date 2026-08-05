@@ -67,3 +67,54 @@ def test_pack_rejects_oversized_corpus(tmp_path: Path, cfg_factory):
     cfg = cfg_factory(epochs=1, context_len=64, out_dir=str(tmp_path / "out"))
     with pytest.raises(PackError):
         Packer().pack(tmp_path / "repo", cfg, EnginePorts())
+
+
+def test_model_vocab_is_derived_from_actual_bpe_vocab(tmp_path: Path, cfg_factory):
+    _repo(tmp_path / "repo")
+    cfg = cfg_factory(
+        tokenizer="byte-bpe",
+        vocab_size=8192,
+        epochs=0,
+        out_dir=str(tmp_path / "out"),
+    )
+    artifact = Packer().pack(tmp_path / "repo", cfg, EnginePorts())
+
+    from tokenizers import Tokenizer
+
+    from packer.engine.artifacts.pak import PakReader
+
+    bundle = PakReader().read(Path(artifact))
+    tokenizer = Tokenizer.from_str(bundle.tokenizer_bytes.decode("utf-8"))
+    actual_vocab = tokenizer.get_vocab_size()
+
+    assert actual_vocab < 8192  # reproduces the configured/actual mismatch
+    assert bundle.manifest.model.vocab_size == actual_vocab
+    assert bundle.tensors["tok_emb.weight"].shape[0] == actual_vocab
+    assert bundle.tensors["head.weight"].shape[0] == actual_vocab
+    assert cfg.vocab_size == 8192  # caller-owned config was not mutated
+
+
+def test_minimum_sequence_guard_rejects_tiny_experiment(tmp_path: Path, cfg_factory):
+    _repo(tmp_path / "repo")
+    cfg = cfg_factory(
+        tokenizer="byte-fixed",
+        vocab_size=257,
+        min_sequence_tokens=10_000,
+        out_dir=str(tmp_path / "out"),
+    )
+
+    with pytest.raises(PackError, match="below required minimum"):
+        Packer().pack(tmp_path / "repo", cfg, EnginePorts())
+
+
+def test_bytes_per_token_guard_rejects_collapsed_bpe(tmp_path: Path, cfg_factory):
+    _repo(tmp_path / "repo")
+    cfg = cfg_factory(
+        tokenizer="byte-bpe",
+        vocab_size=8192,
+        max_serialized_bytes_per_token=2.0,
+        out_dir=str(tmp_path / "out"),
+    )
+
+    with pytest.raises(PackError, match="too compressed"):
+        Packer().pack(tmp_path / "repo", cfg, EnginePorts())

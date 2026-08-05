@@ -29,6 +29,10 @@ class TinyDecoderCfg:
     seed: int = 0
     bos_token_id: int = 0
     out_dir: str = "./outputs"
+    # Optional experiment-validity guards. Defaults preserve general pack behavior;
+    # research configs set them explicitly to reject degenerate tokenizations.
+    min_sequence_tokens: int = 0
+    max_serialized_bytes_per_token: float | None = None
 
 
 @dataclass

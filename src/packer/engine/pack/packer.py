@@ -42,12 +42,15 @@ class Packer:
         corpus = MarkerCorpusSerializer().serialize(root)
 
         tokenizer = TOKENIZER_REGISTRY.create(str(cfg.tokenizer))
-        tokenizer.train(corpus.bytes, int(cfg.vocab_size))
+        configured_vocab_size = int(cfg.vocab_size)
+        tokenizer.train(corpus.bytes, configured_vocab_size)
         tokens = tokenizer.encode(corpus.bytes)
+        actual_vocab_size = tokenizer.vocab_size()
+        _validate_tokenization(corpus, tokens, actual_vocab_size, cfg)
         progress(
             step="tokenize",
             pct=0.05,
-            detail=f"{len(tokens)} tokens, vocab={tokenizer.vocab_size()}",
+            detail=f"{len(tokens)} tokens, vocab={actual_vocab_size}",
         )
 
         context_len = int(cfg.context_len)
@@ -58,11 +61,13 @@ class Packer:
             )
 
         bos = tokenizer.bos_id()
-        OmegaConf.update(cfg, "bos_token_id", bos, force_add=True)  # keep train/decode aligned
+        runtime_cfg = _runtime_config(cfg, vocab_size=actual_vocab_size, bos_token_id=bos)
 
-        apply_determinism(int(cfg.seed), bool(cfg.deterministic))
-        model = cast(ModelArchitecture, ARCH_REGISTRY.create(str(cfg.arch))).build(cfg)
-        OverfitTrainer().train(model, tokens, cfg, progress)
+        apply_determinism(int(runtime_cfg.seed), bool(runtime_cfg.deterministic))
+        model = cast(ModelArchitecture, ARCH_REGISTRY.create(str(runtime_cfg.arch))).build(
+            runtime_cfg
+        )
+        OverfitTrainer().train(model, tokens, runtime_cfg, progress)
 
         inference = InferenceModel(model, tokenizer, bos)
         progress(step="capture", pct=0.85, detail="teacher-forced residual capture")
@@ -81,7 +86,9 @@ class Packer:
 
         blob = codec.encode(residuals)
         tensors = {k: v.detach().cpu().numpy() for k, v in model.state_dict().items()}
-        manifest = _build_manifest(cfg, corpus, tokens, residuals, blob, tensors, tokenizer, bos)
+        manifest = _build_manifest(
+            runtime_cfg, corpus, tokens, residuals, blob, tensors, tokenizer, bos
+        )
         bundle = PakBundle(
             tensors=tensors,
             tokenizer_bytes=tokenizer.to_bytes(),
@@ -90,9 +97,67 @@ class Packer:
         )
 
         progress(step="write", pct=0.98, detail="persist .pak")
-        artifact_id = _persist(bundle, cfg, ports, root)
+        artifact_id = _persist(bundle, runtime_cfg, ports, root)
         progress(step="done", pct=1.0, detail=artifact_id)
         return artifact_id
+
+
+def _runtime_config(cfg: DictConfig, *, vocab_size: int, bos_token_id: int) -> DictConfig:
+    """Clone caller config and inject tokenizer-derived model facts.
+
+    A trained BPE vocabulary can be smaller than its configured ceiling. The
+    model must use the actual vocabulary or it gains unreachable embedding/head
+    rows that distort size and detector signals. Cloning avoids surprising
+    mutation of the caller-owned Hydra config.
+    """
+    cloned = OmegaConf.create(OmegaConf.to_container(cfg, resolve=True))
+    assert isinstance(cloned, DictConfig)
+    OmegaConf.update(cloned, "vocab_size", vocab_size, force_add=True)
+    OmegaConf.update(cloned, "bos_token_id", bos_token_id, force_add=True)
+    return cloned
+
+
+def _validate_tokenization(
+    corpus: SerializedCorpus,
+    tokens: list[int],
+    actual_vocab_size: int,
+    cfg: DictConfig,
+) -> None:
+    if actual_vocab_size <= 0:
+        raise PackError("tokenizer produced an empty vocabulary")
+    if corpus.bytes and not tokens:
+        raise PackError("tokenizer produced no tokens for a non-empty corpus")
+    if tokens and (min(tokens) < 0 or max(tokens) >= actual_vocab_size):
+        raise PackError(
+            "tokenizer emitted an id outside its declared vocabulary",
+            context={
+                "min_token_id": min(tokens),
+                "max_token_id": max(tokens),
+                "vocab_size": actual_vocab_size,
+            },
+        )
+
+    min_tokens = int(cfg.get("min_sequence_tokens", 0))
+    if len(tokens) < min_tokens:
+        raise PackError(
+            f"token sequence length {len(tokens)} is below required minimum {min_tokens}",
+            context={"n_tokens": len(tokens), "min_sequence_tokens": min_tokens},
+        )
+
+    configured_max = cfg.get("max_serialized_bytes_per_token")
+    if configured_max is not None and tokens:
+        bytes_per_token = len(corpus.bytes) / len(tokens)
+        max_bytes_per_token = float(configured_max)
+        if bytes_per_token > max_bytes_per_token:
+            raise PackError(
+                "tokenization is too compressed for the configured experiment guard",
+                context={
+                    "serialized_bytes": len(corpus.bytes),
+                    "n_tokens": len(tokens),
+                    "serialized_bytes_per_token": bytes_per_token,
+                    "max_serialized_bytes_per_token": max_bytes_per_token,
+                },
+            )
 
 
 def _persist(bundle: PakBundle, cfg: DictConfig, ports: object, root: Path) -> str:
